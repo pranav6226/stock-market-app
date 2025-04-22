@@ -8,38 +8,6 @@ const Watchlist = ({ API_URLS, onSelectStock }) => {
   const [newSymbol, setNewSymbol] = useState('');
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Fetch watchlist data from API
-  useEffect(() => {
-    // Skip if data is already loaded
-    if (dataLoaded && watchlist.length > 0) {
-      return;
-    }
-    
-    // For now, we'll use localStorage to simulate a backend server
-    // In the final implementation, this would be replaced with DynamoDB through API Gateway
-    const loadWatchlist = () => {
-      const savedWatchlist = localStorage.getItem('stockWatchlist');
-      
-      if (savedWatchlist) {
-        try {
-          const parsedWatchlist = JSON.parse(savedWatchlist);
-          // Only load symbols, we'll fetch the latest data
-          const symbols = parsedWatchlist.map(item => item.symbol);
-          fetchWatchlistData(symbols);
-        } catch (e) {
-          console.error('Error loading watchlist from localStorage:', e);
-          // Start with default watchlist if there's an error
-          fetchWatchlistData(['AAPL', 'MSFT', 'GOOG']);
-        }
-      } else {
-        // Start with default watchlist if none exists
-        fetchWatchlistData(['AAPL', 'MSFT', 'GOOG']);
-      }
-    };
-    
-    loadWatchlist();
-  }, [dataLoaded, watchlist.length, API_URLS, fetchWatchlistData]);
-
   // Fetch data for all watchlist symbols
   const fetchWatchlistData = useCallback(async (symbols) => {
     if (!symbols || symbols.length === 0) return;
@@ -95,6 +63,38 @@ const Watchlist = ({ API_URLS, onSelectStock }) => {
     // Save to localStorage (would be DynamoDB in AWS implementation)
     localStorage.setItem('stockWatchlist', JSON.stringify(watchlistData));
   }, [API_URLS, setLoading, setWatchlist, setDataLoaded]);
+
+  // Fetch watchlist data from API
+  useEffect(() => {
+    // Skip if data is already loaded
+    if (dataLoaded && watchlist.length > 0) {
+      return;
+    }
+    
+    // For now, we'll use localStorage to simulate a backend server
+    // In the final implementation, this would be replaced with DynamoDB through API Gateway
+    const loadWatchlist = () => {
+      const savedWatchlist = localStorage.getItem('stockWatchlist');
+      
+      if (savedWatchlist) {
+        try {
+          const parsedWatchlist = JSON.parse(savedWatchlist);
+          // Only load symbols, we'll fetch the latest data
+          const symbols = parsedWatchlist.map(item => item.symbol);
+          fetchWatchlistData(symbols);
+        } catch (e) {
+          console.error('Error loading watchlist from localStorage:', e);
+          // Start with default watchlist if there's an error
+          fetchWatchlistData(['AAPL', 'MSFT', 'GOOG']);
+        }
+      } else {
+        // Start with default watchlist if none exists
+        fetchWatchlistData(['AAPL', 'MSFT', 'GOOG']);
+      }
+    };
+    
+    loadWatchlist();
+  }, [dataLoaded, watchlist.length, API_URLS, fetchWatchlistData]);
 
   // Add a new symbol to watchlist
   const handleAddToWatchlist = async () => {

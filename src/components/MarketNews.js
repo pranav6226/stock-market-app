@@ -8,108 +8,8 @@ const MarketNews = ({ stockData }) => {
   // News API key
   const NEWS_API_KEY = '161a8aed5bd4405b9b2eda4a0e09e9fd';
   
-  // Fetch news when stock data changes
-  useEffect(() => {
-    if (stockData && stockData['01. symbol']) {
-      fetchNewsForStock(stockData['01. symbol']);
-    }
-  }, [stockData, fetchNewsForStock]);
-  
-  // Fetch news from the News API
-  const fetchNewsForStock = useCallback(async (symbol) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // Search for stock market specific news about the company
-      const companyName = getCompanyName(symbol);
-      const query = encodeURIComponent(`(${symbol} OR ${companyName}) AND (stock market OR NYSE OR NASDAQ OR trading OR investors OR Wall Street)`);
-      
-      // Use domains parameter to filter for financial news sources
-      const domains = 'finance.yahoo.com,investor.cnbc.com,fool.com,marketwatch.com,bloomberg.com,investors.com,wsj.com,barrons.com,ft.com,reuters.com';
-      
-      const url = `https://newsapi.org/v2/everything?q=${query}&domains=${domains}&apiKey=${NEWS_API_KEY}&language=en&sortBy=publishedAt&pageSize=5`;
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch news data');
-      }
-      
-      const data = await response.json();
-      
-      if (data.status === 'ok' && data.articles) {
-        // Format news data
-        const formattedNews = data.articles.map((article, index) => ({
-          id: index,
-          title: article.title,
-          source: article.source.name,
-          time: formatNewsDate(article.publishedAt),
-          snippet: article.description,
-          url: article.url,
-          imageUrl: article.urlToImage
-        }));
-        
-        setNews(formattedNews);
-        
-        // If no financial news found, try a broader search with category=business
-        if (formattedNews.length === 0) {
-          fallbackToGeneralFinancialNews(symbol);
-        }
-      } else {
-        throw new Error(data.message || 'Invalid news data received');
-      }
-    } catch (err) {
-      console.error('Error fetching news:', err);
-      setError(err.message);
-      // Fall back to mock news if API fails
-      setNews(generateMockNews());
-    } finally {
-      setIsLoading(false);
-    }
-  }, [NEWS_API_KEY, getCompanyName, formatNewsDate, fallbackToGeneralFinancialNews, generateMockNews, setIsLoading, setError, setNews]);
-  
-  // Fallback to general financial news if no specific stock news found
-  const fallbackToGeneralFinancialNews = useCallback(async (symbol) => {
-    try {
-      const companyName = getCompanyName(symbol);
-      // Try a broader search with top-headlines endpoint and category=business
-      const url = `https://newsapi.org/v2/top-headlines?country=us&category=business&q=${encodeURIComponent(companyName)}&apiKey=${NEWS_API_KEY}&pageSize=5`;
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch general financial news');
-      }
-      
-      const data = await response.json();
-      
-      if (data.status === 'ok' && data.articles && data.articles.length > 0) {
-        // Format news data
-        const formattedNews = data.articles.map((article, index) => ({
-          id: index,
-          title: article.title,
-          source: article.source.name,
-          time: formatNewsDate(article.publishedAt),
-          snippet: article.description,
-          url: article.url,
-          imageUrl: article.urlToImage
-        }));
-        
-        setNews(formattedNews);
-      } else {
-        // If still no results, fall back to mock news
-        setNews(generateMockNews());
-      }
-    } catch (err) {
-      console.error('Error fetching general financial news:', err);
-      // Fall back to mock news
-      setNews(generateMockNews());
-    }
-  }, [NEWS_API_KEY, getCompanyName, formatNewsDate, generateMockNews, setNews]);
-  
   // Format the publishedAt date to a relative time
-  const formatNewsDate = (dateString) => {
+  const formatNewsDate = useCallback((dateString) => {
     const publishedDate = new Date(dateString);
     const now = new Date();
     const diffMs = now - publishedDate;
@@ -124,7 +24,7 @@ const MarketNews = ({ stockData }) => {
     } else {
       return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
     }
-  };
+  }, []);
   
   // Map common stock symbols to company names for better news results
   const getCompanyName = useCallback((symbol) => {
@@ -152,6 +52,22 @@ const MarketNews = ({ stockData }) => {
     };
     
     return companyMap[symbol] || symbol;
+  }, []);
+
+  // Get sector for a stock symbol
+  const getStockSector = useCallback((symbol) => {
+    if (['AAPL', 'MSFT', 'GOOG', 'GOOGL', 'META', 'NVDA', 'ADBE', 'CSCO', 'INTC'].includes(symbol)) {
+      return 'Technology';
+    } else if (['AMZN', 'TSLA', 'NFLX', 'DIS', 'CMCSA'].includes(symbol)) {
+      return 'Consumer Cyclical';
+    } else if (['JPM', 'BAC', 'V', 'MA', 'PYPL'].includes(symbol)) {
+      return 'Financial Services';
+    } else if (['JNJ', 'PFE', 'MRK', 'TMO'].includes(symbol)) {
+      return 'Healthcare';
+    } else if (['WMT', 'PG', 'COST', 'KO', 'PEP'].includes(symbol)) {
+      return 'Consumer Defensive';
+    }
+    return 'Stocks';
   }, []);
   
   // Generate mock news based on the stock data (fallback)
@@ -207,25 +123,109 @@ const MarketNews = ({ stockData }) => {
     
     return newsItems;
   }, [stockData, getCompanyName, getStockSector]);
-  
-  // Get sector for a stock symbol
-  const getStockSector = (symbol) => {
-    if (['AAPL', 'MSFT', 'GOOG', 'GOOGL', 'META', 'NVDA', 'ADBE', 'CSCO', 'INTC'].includes(symbol)) {
-      return 'Technology';
-    } else if (['AMZN', 'TSLA', 'NFLX', 'DIS', 'CMCSA'].includes(symbol)) {
-      return 'Consumer Cyclical';
-    } else if (['JPM', 'BAC', 'V', 'MA', 'PYPL'].includes(symbol)) {
-      return 'Financial Services';
-    } else if (['JNJ', 'PFE', 'MRK', 'TMO'].includes(symbol)) {
-      return 'Healthcare';
-    } else if (['WMT', 'PG', 'COST', 'KO', 'PEP'].includes(symbol)) {
-      return 'Consumer Defensive';
+
+  // Fallback to general financial news
+  const fallbackToGeneralFinancialNews = useCallback(async (symbol) => {
+    try {
+      const companyName = getCompanyName(symbol);
+      // Try a broader search with top-headlines endpoint and category=business
+      const url = `https://newsapi.org/v2/top-headlines?country=us&category=business&q=${encodeURIComponent(companyName)}&apiKey=${NEWS_API_KEY}&pageSize=5`;
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch general financial news');
+      }
+      
+      const data = await response.json();
+      
+      if (data.status === 'ok' && data.articles && data.articles.length > 0) {
+        // Format news data
+        const formattedNews = data.articles.map((article, index) => ({
+          id: index,
+          title: article.title,
+          source: article.source.name,
+          time: formatNewsDate(article.publishedAt),
+          snippet: article.description,
+          url: article.url,
+          imageUrl: article.urlToImage
+        }));
+        
+        setNews(formattedNews);
+      } else {
+        // If still no results, fall back to mock news
+        setNews(generateMockNews());
+      }
+    } catch (err) {
+      console.error('Error fetching general financial news:', err);
+      // Fall back to mock news
+      setNews(generateMockNews());
     }
-    return 'Stocks';
-  };
+  }, [NEWS_API_KEY, getCompanyName, formatNewsDate, generateMockNews, setNews]);
+  
+  // Fetch news from the News API
+  const fetchNewsForStock = useCallback(async (symbol) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Search for stock market specific news about the company
+      const companyName = getCompanyName(symbol);
+      const query = encodeURIComponent(`(${symbol} OR ${companyName}) AND (stock market OR NYSE OR NASDAQ OR trading OR investors OR Wall Street)`);
+      
+      // Use domains parameter to filter for financial news sources
+      const domains = 'finance.yahoo.com,investor.cnbc.com,fool.com,marketwatch.com,bloomberg.com,investors.com,wsj.com,barrons.com,ft.com,reuters.com';
+      
+      const url = `https://newsapi.org/v2/everything?q=${query}&domains=${domains}&apiKey=${NEWS_API_KEY}&language=en&sortBy=publishedAt&pageSize=5`;
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch news data');
+      }
+      
+      const data = await response.json();
+      
+      if (data.status === 'ok' && data.articles) {
+        // Format news data
+        const formattedNews = data.articles.map((article, index) => ({
+          id: index,
+          title: article.title,
+          source: article.source.name,
+          time: formatNewsDate(article.publishedAt),
+          snippet: article.description,
+          url: article.url,
+          imageUrl: article.urlToImage
+        }));
+        
+        setNews(formattedNews);
+        
+        // If no financial news found, try a broader search with category=business
+        if (formattedNews.length === 0) {
+          fallbackToGeneralFinancialNews(symbol);
+        }
+      } else {
+        throw new Error(data.message || 'Invalid news data received');
+      }
+    } catch (err) {
+      console.error('Error fetching news:', err);
+      setError(err.message);
+      // Fall back to mock news if API fails
+      setNews(generateMockNews());
+    } finally {
+      setIsLoading(false);
+    }
+  }, [NEWS_API_KEY, getCompanyName, formatNewsDate, fallbackToGeneralFinancialNews, generateMockNews, setIsLoading, setError, setNews]);
+
+  // Fetch news when stock data changes
+  useEffect(() => {
+    if (stockData && stockData['01. symbol']) {
+      fetchNewsForStock(stockData['01. symbol']);
+    }
+  }, [stockData, fetchNewsForStock]);
   
   // Generate market insight data
-  const generateMarketInsights = () => {
+  const generateMarketInsights = useCallback(() => {
     if (!stockData || !stockData['01. symbol']) return null;
     
     // Mock market cap based on price and a random multiplier
@@ -257,7 +257,7 @@ const MarketNews = ({ stockData }) => {
       averageVolume: `${(Math.floor(Math.random() * 9) + 1).toFixed(1)}M`,
       beta: (0.8 + Math.random() * 1.2).toFixed(2)
     };
-  };
+  }, [stockData]);
   
   const marketInsights = generateMarketInsights();
   

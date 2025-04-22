@@ -24,100 +24,6 @@ const StockComparison = ({ primaryStock = {}, API_URLS = [] }) => {
     '#607D8B'  // Blue Grey
   ];
 
-  // Fetch data for comparison stocks
-  useEffect(() => {
-    // If we don't have API_URLS, can't proceed
-    if (!API_URLS || API_URLS.length === 0) {
-      console.error("API URLs not available");
-      return;
-    }
-    
-    // Prevent re-fetching if data is already loaded
-    if (dataLoaded && Object.keys(comparisonData).length > 0) {
-      return;
-    }
-    
-    const fetchComparisonData = async () => {
-      // Use a default primary symbol if none provided
-      const primarySymbol = primaryStock && primaryStock['01. symbol'] 
-        ? primaryStock['01. symbol'] 
-        : 'AAPL';
-      
-      setLoading(true);
-      const newData = {};
-      
-      // Add primary stock data if available, otherwise fetch it
-      if (primaryStock && primaryStock['01. symbol']) {
-        newData[primaryStock['01. symbol']] = {
-          price: parseFloat(primaryStock['05. price']),
-          change: parseFloat(primaryStock['09. change']),
-          percentChange: parseFloat(primaryStock['10. change percent'].replace('%', '')),
-          historicalData: generateMockHistoricalData(parseFloat(primaryStock['05. price']))
-        };
-      } else {
-        // Fetch primary stock data if not provided
-        try {
-          const symbol = 'AAPL'; // Default
-          await fetchStockData(symbol, newData);
-        } catch (err) {
-          console.error(`Error fetching data for default stock:`, err);
-        }
-      }
-      
-      // Fetch data for each comparison symbol
-      for (const symbol of comparisonSymbols) {
-        if (symbol === primarySymbol) continue;
-        
-        await fetchStockData(symbol, newData);
-      }
-      
-      setComparisonData(newData);
-      setLoading(false);
-      setDataLoaded(true); // Mark data as loaded after successful fetch
-    };
-    
-    fetchComparisonData();
-  }, [primaryStock, comparisonSymbols, API_URLS, dataLoaded, comparisonData, fetchStockData]);
-  
-  // Helper function to fetch stock data
-  const fetchStockData = useCallback(async (symbol, dataObject) => {
-    try {
-      // Try each API URL until one works
-      for (let i = 0; i < API_URLS.length; i++) {
-        try {
-          const response = await axios.get(
-            `${API_URLS[i]}?symbol=${symbol}`,
-            { timeout: 5000 }
-          );
-          
-          if (response.data && !response.data.error) {
-            dataObject[symbol] = {
-              price: parseFloat(response.data['05. price']),
-              change: parseFloat(response.data['09. change']),
-              percentChange: parseFloat(response.data['10. change percent'].replace('%', '')),
-              historicalData: generateMockHistoricalData(parseFloat(response.data['05. price']))
-            };
-            
-            break; // Exit the loop if successful
-          }
-        } catch (err) {
-          if (i === API_URLS.length - 1) {
-            console.error(`Failed to fetch data for ${symbol}`);
-            // Create mock data if API fails
-            dataObject[symbol] = {
-              price: Math.random() * 200 + 50,
-              change: (Math.random() * 10) - 5,
-              percentChange: (Math.random() * 5) - 2.5,
-              historicalData: generateMockHistoricalData(Math.random() * 200 + 50)
-            };
-          }
-        }
-      }
-    } catch (err) {
-      console.error(`Error fetching data for ${symbol}:`, err);
-    }
-  }, [API_URLS, generateMockHistoricalData]);
-
   // Generate mock historical data for visualization
   const generateMockHistoricalData = useCallback((currentPrice) => {
     const data = [];
@@ -171,6 +77,100 @@ const StockComparison = ({ primaryStock = {}, API_URLS = [] }) => {
     
     return data;
   }, []);
+
+  // Helper function to fetch stock data
+  const fetchStockData = useCallback(async (symbol, dataObject) => {
+    try {
+      // Try each API URL until one works
+      for (let i = 0; i < API_URLS.length; i++) {
+        try {
+          const response = await axios.get(
+            `${API_URLS[i]}?symbol=${symbol}`,
+            { timeout: 5000 }
+          );
+          
+          if (response.data && !response.data.error) {
+            dataObject[symbol] = {
+              price: parseFloat(response.data['05. price']),
+              change: parseFloat(response.data['09. change']),
+              percentChange: parseFloat(response.data['10. change percent'].replace('%', '')),
+              historicalData: generateMockHistoricalData(parseFloat(response.data['05. price']))
+            };
+            
+            break; // Exit the loop if successful
+          }
+        } catch (err) {
+          if (i === API_URLS.length - 1) {
+            console.error(`Failed to fetch data for ${symbol}`);
+            // Create mock data if API fails
+            dataObject[symbol] = {
+              price: Math.random() * 200 + 50,
+              change: (Math.random() * 10) - 5,
+              percentChange: (Math.random() * 5) - 2.5,
+              historicalData: generateMockHistoricalData(Math.random() * 200 + 50)
+            };
+          }
+        }
+      }
+    } catch (err) {
+      console.error(`Error fetching data for ${symbol}:`, err);
+    }
+  }, [API_URLS, generateMockHistoricalData]);
+
+  // Fetch data for comparison stocks
+  useEffect(() => {
+    // If we don't have API_URLS, can't proceed
+    if (!API_URLS || API_URLS.length === 0) {
+      console.error("API URLs not available");
+      return;
+    }
+    
+    // Prevent re-fetching if data is already loaded
+    if (dataLoaded && Object.keys(comparisonData).length > 0) {
+      return;
+    }
+    
+    const fetchComparisonData = async () => {
+      // Use a default primary symbol if none provided
+      const primarySymbol = primaryStock && primaryStock['01. symbol'] 
+        ? primaryStock['01. symbol'] 
+        : 'AAPL';
+      
+      setLoading(true);
+      const newData = {};
+      
+      // Add primary stock data if available, otherwise fetch it
+      if (primaryStock && primaryStock['01. symbol']) {
+        newData[primaryStock['01. symbol']] = {
+          price: parseFloat(primaryStock['05. price']),
+          change: parseFloat(primaryStock['09. change']),
+          percentChange: parseFloat(primaryStock['10. change percent'].replace('%', '')),
+          historicalData: generateMockHistoricalData(parseFloat(primaryStock['05. price']))
+        };
+      } else {
+        // Fetch primary stock data if not provided
+        try {
+          const symbol = 'AAPL'; // Default
+          await fetchStockData(symbol, newData);
+        } catch (err) {
+          console.error(`Error fetching data for default stock:`, err);
+        }
+      }
+      
+      // Fetch data for each comparison symbol
+      for (const symbol of comparisonSymbols) {
+        if (symbol === primarySymbol) continue;
+        
+        await fetchStockData(symbol, newData);
+      }
+      
+      setComparisonData(newData);
+      setLoading(false);
+      setDataLoaded(true); // Mark data as loaded after successful fetch
+    };
+    
+    fetchComparisonData();
+  }, [primaryStock, comparisonSymbols, API_URLS, dataLoaded, fetchStockData, generateMockHistoricalData, comparisonData]);
 
   // Merge historical data for comparison chart
   const prepareComparisonChartData = () => {
