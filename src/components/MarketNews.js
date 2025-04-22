@@ -5,8 +5,8 @@ const MarketNews = ({ stockData }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // News API key
-  const NEWS_API_KEY = '161a8aed5bd4405b9b2eda4a0e09e9fd';
+  // GNews API key - Replace with your actual key from https://gnews.io/
+  const GNEWS_API_KEY = 'YOUR_GNEWS_API_KEY'; // TODO: Replace with your GNews API key
   
   // Format the publishedAt date to a relative time
   const formatNewsDate = useCallback((dateString) => {
@@ -90,80 +90,86 @@ const MarketNews = ({ stockData }) => {
       {
         id: 1,
         title: `${symbol} ${isPositive ? 'Rises' : 'Falls'} ${Math.abs(changePercent).toFixed(2)}% as ${randomIndex} ${isPositive ? 'Gains' : 'Drops'}`,
-        source: 'Market Watch',
+        source: { name: 'Market Watch' },
         time: '2 hours ago',
         url: '#',
-        snippet: `Shares of ${companyName} (${symbol}) ${isPositive ? 'climbed' : 'fell'} by ${Math.abs(changePercent).toFixed(2)}% in today's trading session amid broader ${isPositive ? 'gains' : 'losses'} in the US markets. Wall Street analysts cite ${isPositive ? 'positive economic data' : 'recession fears'} as the main driver.`
+        snippet: `Shares of ${companyName} (${symbol}) ${isPositive ? 'climbed' : 'fell'} by ${Math.abs(changePercent).toFixed(2)}% in today's trading session amid broader ${isPositive ? 'gains' : 'losses'} in the US markets. Wall Street analysts cite ${isPositive ? 'positive economic data' : 'recession fears'} as the main driver.`,
+        imageUrl: `https://logo.clearbit.com/${symbol.toLowerCase()}.com` // Attempt to get company logo
       },
       {
         id: 2,
         title: `Wall Street Analysts Adjust ${symbol} Price Target to $${(price * 1.15).toFixed(2)} Following Earnings`,
-        source: 'CNBC',
+        source: { name: 'CNBC' },
         time: '1 day ago',
         url: '#',
-        snippet: `Major investment banks including Goldman Sachs and JP Morgan have revised their outlook for ${companyName}, with the consensus price target suggesting a potential ${(Math.random() * 10 + 5).toFixed(1)}% upside from current trading levels. Trading volume was ${(Math.random() * 50 + 50).toFixed(1)}% above the NYSE daily average.`
+        snippet: `Major investment banks including Goldman Sachs and JP Morgan have revised their outlook for ${companyName}, with the consensus price target suggesting a potential ${(Math.random() * 10 + 5).toFixed(1)}% upside from current trading levels. Trading volume was ${(Math.random() * 50 + 50).toFixed(1)}% above the NYSE daily average.`,
+        imageUrl: `https://logo.clearbit.com/${symbol.toLowerCase()}.com`
       },
       {
         id: 3,
         title: `${companyName} Shares React to Federal Reserve Policy Amid Volatile Trading Session`,
-        source: 'Yahoo Finance',
+        source: { name: 'Yahoo Finance' },
         time: '3 days ago',
         url: '#',
-        snippet: `${symbol} stock ${Math.random() > 0.5 ? 'rebounded' : 'retreated'} following the Federal Reserve's latest policy announcement. The company, which is a component of the ${randomIndex}, has seen its market position ${Math.random() > 0.6 ? 'strengthen' : 'weaken'} as investors assess the impact of interest rates on growth stocks.`
+        snippet: `${symbol} stock ${Math.random() > 0.5 ? 'rebounded' : 'retreated'} following the Federal Reserve's latest policy announcement. The company, which is a component of the ${randomIndex}, has seen its market position ${Math.random() > 0.6 ? 'strengthen' : 'weaken'} as investors assess the impact of interest rates on growth stocks.`,
+        imageUrl: `https://logo.clearbit.com/${symbol.toLowerCase()}.com`
       },
       {
         id: 4,
         title: `Sector Analysis: How ${companyName} Compares to Industry Peers on Wall Street`,
-        source: 'Barron\'s',
+        source: { name: 'Barron\'s' },
         time: '5 days ago',
         url: '#',
-        snippet: `A comprehensive analysis of the ${getStockSector(symbol)} sector reveals that ${companyName} is ${Math.random() > 0.5 ? 'outperforming' : 'underperforming'} its competitors on key metrics. Trading patterns suggest ${Math.random() > 0.5 ? 'institutional buying' : 'profit-taking'} has been the dominant force in recent NASDAQ sessions.`
+        snippet: `A comprehensive analysis of the ${getStockSector(symbol)} sector reveals that ${companyName} is ${Math.random() > 0.5 ? 'outperforming' : 'underperforming'} its competitors on key metrics. Trading patterns suggest ${Math.random() > 0.5 ? 'institutional buying' : 'profit-taking'} has been the dominant force in recent NASDAQ sessions.`,
+        imageUrl: `https://logo.clearbit.com/${symbol.toLowerCase()}.com`
       }
     ];
     
     return newsItems;
   }, [stockData, getCompanyName, getStockSector]);
 
-  // Fallback to general financial news
+  // Fallback to general financial news using GNews API
   const fallbackToGeneralFinancialNews = useCallback(async (symbol) => {
     try {
-      // Check if we're in production (not localhost)
-      // News API free tier only works on localhost
-      const isProduction = !window.location.hostname.includes('localhost');
-      
-      if (isProduction) {
-        // In production, just use mock data without attempting API call
+      // If API key is not set, use mock data
+      if (!GNEWS_API_KEY || GNEWS_API_KEY === 'YOUR_GNEWS_API_KEY') {
+        console.log('GNews API key not configured, using mock news data');
         setNews(generateMockNews());
         return;
       }
       
       const companyName = getCompanyName(symbol);
-      // Try a broader search with top-headlines endpoint and category=business
-      const url = `https://newsapi.org/v2/top-headlines?country=us&category=business&q=${encodeURIComponent(companyName)}&apiKey=${NEWS_API_KEY}&pageSize=5`;
+      // Use GNews top headlines endpoint with business category
+      const url = `https://gnews.io/api/v4/top-headlines?category=business&q=${encodeURIComponent(companyName)}&lang=en&country=us&max=5&apikey=${GNEWS_API_KEY}`;
+      
+      console.log('Fetching general news from GNews:', url.replace(GNEWS_API_KEY, 'API_KEY_HIDDEN'));
       
       const response = await fetch(url);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch general financial news');
+        const errorText = await response.text().catch(() => 'No error details available');
+        console.error('GNews API error:', response.status, errorText);
+        throw new Error(`Failed to fetch general financial news (${response.status}: ${response.statusText})`);
       }
       
       const data = await response.json();
       
-      if (data.status === 'ok' && data.articles && data.articles.length > 0) {
-        // Format news data
+      if (data.articles && data.articles.length > 0) {
+        // Format news data from GNews API format
         const formattedNews = data.articles.map((article, index) => ({
           id: index,
           title: article.title,
-          source: article.source.name,
+          source: article.source,
           time: formatNewsDate(article.publishedAt),
           snippet: article.description,
           url: article.url,
-          imageUrl: article.urlToImage
+          imageUrl: article.image
         }));
         
         setNews(formattedNews);
       } else {
-        // If still no results, fall back to mock news
+        // If no results, fall back to mock news
+        console.log('No business news found, using mock data');
         setNews(generateMockNews());
       }
     } catch (err) {
@@ -171,21 +177,17 @@ const MarketNews = ({ stockData }) => {
       // Fall back to mock news
       setNews(generateMockNews());
     }
-  }, [NEWS_API_KEY, getCompanyName, formatNewsDate, generateMockNews, setNews]);
+  }, [GNEWS_API_KEY, getCompanyName, formatNewsDate, generateMockNews, setNews]);
   
-  // Fetch news from the News API
+  // Fetch news from the GNews API
   const fetchNewsForStock = useCallback(async (symbol) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      // Check if we're in production (not localhost)
-      // News API free tier only works on localhost
-      const isProduction = !window.location.hostname.includes('localhost');
-      
-      if (isProduction) {
-        // In production, just use mock data without attempting API call
-        console.log('Using mock news data in production (News API free tier restricted to localhost)');
+      // If API key is not set, use mock data
+      if (!GNEWS_API_KEY || GNEWS_API_KEY === 'YOUR_GNEWS_API_KEY') {
+        console.log('GNews API key not configured, using mock news data');
         setNews(generateMockNews());
         setIsLoading(false);
         return;
@@ -193,45 +195,44 @@ const MarketNews = ({ stockData }) => {
       
       // Search for stock market specific news about the company
       const companyName = getCompanyName(symbol);
-      const query = encodeURIComponent(`(${symbol} OR ${companyName}) AND (stock market OR NYSE OR NASDAQ OR trading OR investors OR Wall Street)`);
+      const query = `${symbol} OR ${companyName} stock market`;
       
-      // Use domains parameter to filter for financial news sources
-      const domains = 'finance.yahoo.com,investor.cnbc.com,fool.com,marketwatch.com,bloomberg.com,investors.com,wsj.com,barrons.com,ft.com,reuters.com';
+      // Using GNews search endpoint
+      const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&country=us&max=5&apikey=${GNEWS_API_KEY}`;
       
-      const url = `https://newsapi.org/v2/everything?q=${query}&domains=${domains}&apiKey=${NEWS_API_KEY}&language=en&sortBy=publishedAt&pageSize=5`;
-      
-      console.log('Fetching news from:', url.replace(NEWS_API_KEY, 'API_KEY_HIDDEN'));
+      console.log('Fetching news from GNews:', url.replace(GNEWS_API_KEY, 'API_KEY_HIDDEN'));
       
       const response = await fetch(url);
       
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'No error details available');
-        console.error('News API error:', response.status, errorText);
+        console.error('GNews API error:', response.status, errorText);
         throw new Error(`Failed to fetch news data (${response.status}: ${response.statusText})`);
       }
       
       const data = await response.json();
       
-      if (data.status === 'ok' && data.articles) {
-        // Format news data
+      if (data.articles && data.articles.length > 0) {
+        // Format news data from GNews API format
         const formattedNews = data.articles.map((article, index) => ({
           id: index,
           title: article.title,
-          source: article.source.name,
+          source: article.source,
           time: formatNewsDate(article.publishedAt),
           snippet: article.description,
           url: article.url,
-          imageUrl: article.urlToImage
+          imageUrl: article.image
         }));
         
         setNews(formattedNews);
         
-        // If no financial news found, try a broader search with category=business
+        // If no financial news found, try a broader search with business category
         if (formattedNews.length === 0) {
           fallbackToGeneralFinancialNews(symbol);
         }
       } else {
-        throw new Error(data.message || 'Invalid news data received');
+        // If no results, use fallback
+        fallbackToGeneralFinancialNews(symbol);
       }
     } catch (err) {
       console.error('Error fetching news:', err);
@@ -241,7 +242,7 @@ const MarketNews = ({ stockData }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [NEWS_API_KEY, getCompanyName, formatNewsDate, fallbackToGeneralFinancialNews, generateMockNews, setIsLoading, setError, setNews]);
+  }, [GNEWS_API_KEY, getCompanyName, formatNewsDate, fallbackToGeneralFinancialNews, generateMockNews, setIsLoading, setError, setNews]);
 
   // Fetch news when stock data changes
   useEffect(() => {
@@ -291,9 +292,9 @@ const MarketNews = ({ stockData }) => {
     <div className="dashboard-bottom">
       <div className="news-section card">
         <h2>Latest News</h2>
-        {!window.location.hostname.includes('localhost') && (
-          <div className="mock-data-notice" style={{ fontSize: '0.8rem', color: '#666', marginBottom: '10px' }}>
-            Using simulated news data in production (News API free tier works only in development)
+        {GNEWS_API_KEY === 'YOUR_GNEWS_API_KEY' && (
+          <div className="api-key-notice" style={{ fontSize: '0.8rem', color: '#d14', marginBottom: '10px' }}>
+            Please add your GNews API key in MarketNews.js. <a href="https://gnews.io/" target="_blank" rel="noopener noreferrer">Get a free API key here</a>.
           </div>
         )}
         {isLoading ? (
@@ -311,7 +312,7 @@ const MarketNews = ({ stockData }) => {
                     </a>
                   </h3>
                   <div className="news-meta">
-                    <span className="news-source">{newsItem.source}</span>
+                    <span className="news-source">{newsItem.source.name}</span>
                     <span className="news-time">{newsItem.time}</span>
                   </div>
                   {newsItem.imageUrl && (
