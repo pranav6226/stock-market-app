@@ -1,0 +1,20 @@
+# Netlify configuration file
+# Documentation: https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+  # Command to build the site
+  command = "npm run build"
+  
+  # Directory containing the built site (relative to the root)
+  publish = "build"
+  
+  # Optional: Specify Node.js version if needed
+  # [build.environment]
+  #   NODE_VERSION = "18" # Or your preferred version
+
+# Redirect rule for Single Page Applications (like Create React App)
+# This ensures that direct navigation to routes like /dashboard works correctly
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 

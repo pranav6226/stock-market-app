@@ -1,0 +1,29 @@
+# Render configuration file (Blueprint)
+# Documentation: https://render.com/docs/blueprint-spec
+
+services:
+  # Backend Web Service configuration
+  - type: web
+    name: stock-market-backend # Choose a service name (shows up in Render dashboard)
+    runtime: python
+    # Optional: Specify your repo URL if deploying directly from GitHub/GitLab
+    # repo: https://github.com/your-username/your-repo 
+    # Specify the directory containing the backend code
+    rootDir: backend 
+    # Command to install dependencies
+    buildCommand: "pip install -r requirements.txt"
+    # Command to start the web server (uses $PORT provided by Render)
+    startCommand: "gunicorn --bind :$PORT application:application"
+    # Environment variables
+    envVars:
+      # Optional: Specify the Python version (e.g., 3.9, 3.10, 3.11)
+      - key: PYTHON_VERSION
+        value: 3.9 # Replace with your desired Python version
+      # IMPORTANT: Set the allowed origin for CORS to your Netlify frontend URL
+      - key: FRONTEND_URL
+        value: https://your-netlify-app-name.netlify.app # <-- REPLACE THIS with your actual Netlify URL
+      # Add any other necessary backend environment variables here
+      # - key: DATABASE_URL
+      #   value: YOUR_DATABASE_URL
+      # - key: SECRET_KEY
+      #   value: YOUR_SECRET_KEY 
