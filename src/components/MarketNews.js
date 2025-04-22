@@ -13,7 +13,7 @@ const MarketNews = ({ stockData }) => {
     if (stockData && stockData['01. symbol']) {
       fetchNewsForStock(stockData['01. symbol']);
     }
-  }, [stockData]);
+  }, [stockData, fetchNewsForStock]);
   
   // Fetch news from the News API
   const fetchNewsForStock = async (symbol) => {

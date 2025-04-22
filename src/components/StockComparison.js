@@ -9,8 +9,6 @@ const StockComparison = ({ primaryStock = {}, API_URLS = [] }) => {
   const [comparisonSymbols, setComparisonSymbols] = useState(['MSFT', 'GOOG']);
   const [comparisonData, setComparisonData] = useState({});
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [apiUrlIndex, setApiUrlIndex] = useState(0);
   const [showInput, setShowInput] = useState(false);
   const [newSymbol, setNewSymbol] = useState('');
   const [chartType, setChartType] = useState('price');
@@ -30,7 +28,7 @@ const StockComparison = ({ primaryStock = {}, API_URLS = [] }) => {
   useEffect(() => {
     // If we don't have API_URLS, can't proceed
     if (!API_URLS || API_URLS.length === 0) {
-      setError("API URLs not available");
+      console.error("API URLs not available");
       return;
     }
     
@@ -79,7 +77,7 @@ const StockComparison = ({ primaryStock = {}, API_URLS = [] }) => {
     };
     
     fetchComparisonData();
-  }, [primaryStock, comparisonSymbols, API_URLS, dataLoaded]);
+  }, [primaryStock, comparisonSymbols, API_URLS, dataLoaded, comparisonData, fetchStockData]);
   
   // Helper function to fetch stock data
   const fetchStockData = async (symbol, dataObject) => {
@@ -93,8 +91,6 @@ const StockComparison = ({ primaryStock = {}, API_URLS = [] }) => {
           );
           
           if (response.data && !response.data.error) {
-            setApiUrlIndex(i);
-            
             dataObject[symbol] = {
               price: parseFloat(response.data['05. price']),
               change: parseFloat(response.data['09. change']),

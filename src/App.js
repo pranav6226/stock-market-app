@@ -85,7 +85,7 @@ function Dashboard({ API_URLS, onStockDataChange }) {
     };
 
     fetchStockData();
-  }, [searchQuery, API_URLS, onStockDataChange, dataLoaded, stockData]);
+  }, [searchQuery, API_URLS, onStockDataChange, dataLoaded, stockData, updateStockData]);
 
   const handleSearch = (query) => {
     setSearchQuery(query);

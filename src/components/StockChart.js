@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, LineChart, Line, ComposedChart, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
-  ResponsiveContainer, PieChart, Pie, Cell
+  ResponsiveContainer, Cell
 } from 'recharts';
 
 const StockChart = ({ stockData }) => {
@@ -182,7 +182,7 @@ const StockChart = ({ stockData }) => {
   // Determine if stock is up or down for color schemes
   const isStockUp = parseFloat(stockData['09. change'] || 0) >= 0;
   const mainColor = isStockUp ? '#4CAF50' : '#F44336';
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
+  // const COLORS = ['#0088FE', '#00C49F', '#FFBB28']; // Removed as unused
 
   // Chart type options
   const chartTypes = [

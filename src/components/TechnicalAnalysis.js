@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 const TechnicalAnalysis = ({ stockData }) => {
-  const [historicalData, setHistoricalData] = useState([]);
+  // const [historicalData, setHistoricalData] = useState([]); // Removed as unused
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [technicalIndicators, setTechnicalIndicators] = useState({});
@@ -30,7 +30,7 @@ const TechnicalAnalysis = ({ stockData }) => {
         })
         .then(data => {
           if (data && data.data && Array.isArray(data.data)) {
-            setHistoricalData(data.data);
+            // setHistoricalData(data.data); // Removed as unused
             
             // Calculate technical indicators
             const indicators = calculateTechnicalIndicators(data.data, stockData);
@@ -46,7 +46,7 @@ const TechnicalAnalysis = ({ stockData }) => {
           setIsLoading(false);
         });
     }
-  }, [stockData]);
+  }, [stockData, calculateTechnicalIndicators]);
 
   // Calculate technical indicators from historical data
   const calculateTechnicalIndicators = (data, currentStockData) => {

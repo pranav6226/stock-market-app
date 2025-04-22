@@ -6,7 +6,6 @@ const Watchlist = ({ API_URLS, onSelectStock }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [newSymbol, setNewSymbol] = useState('');
-  const [apiUrlIndex, setApiUrlIndex] = useState(0);
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // Fetch watchlist data from API
@@ -39,7 +38,7 @@ const Watchlist = ({ API_URLS, onSelectStock }) => {
     };
     
     loadWatchlist();
-  }, [dataLoaded, watchlist.length, API_URLS]);
+  }, [dataLoaded, watchlist.length, API_URLS, fetchWatchlistData]);
 
   // Fetch data for all watchlist symbols
   const fetchWatchlistData = async (symbols) => {
@@ -59,8 +58,6 @@ const Watchlist = ({ API_URLS, onSelectStock }) => {
             );
             
             if (response.data && !response.data.error) {
-              setApiUrlIndex(i);
-              
               watchlistData.push({
                 symbol: response.data['01. symbol'],
                 price: parseFloat(response.data['05. price']),
