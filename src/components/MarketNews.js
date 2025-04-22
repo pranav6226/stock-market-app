@@ -127,6 +127,16 @@ const MarketNews = ({ stockData }) => {
   // Fallback to general financial news
   const fallbackToGeneralFinancialNews = useCallback(async (symbol) => {
     try {
+      // Check if we're in production (not localhost)
+      // News API free tier only works on localhost
+      const isProduction = !window.location.hostname.includes('localhost');
+      
+      if (isProduction) {
+        // In production, just use mock data without attempting API call
+        setNews(generateMockNews());
+        return;
+      }
+      
       const companyName = getCompanyName(symbol);
       // Try a broader search with top-headlines endpoint and category=business
       const url = `https://newsapi.org/v2/top-headlines?country=us&category=business&q=${encodeURIComponent(companyName)}&apiKey=${NEWS_API_KEY}&pageSize=5`;
@@ -169,6 +179,18 @@ const MarketNews = ({ stockData }) => {
     setError(null);
     
     try {
+      // Check if we're in production (not localhost)
+      // News API free tier only works on localhost
+      const isProduction = !window.location.hostname.includes('localhost');
+      
+      if (isProduction) {
+        // In production, just use mock data without attempting API call
+        console.log('Using mock news data in production (News API free tier restricted to localhost)');
+        setNews(generateMockNews());
+        setIsLoading(false);
+        return;
+      }
+      
       // Search for stock market specific news about the company
       const companyName = getCompanyName(symbol);
       const query = encodeURIComponent(`(${symbol} OR ${companyName}) AND (stock market OR NYSE OR NASDAQ OR trading OR investors OR Wall Street)`);
@@ -178,10 +200,14 @@ const MarketNews = ({ stockData }) => {
       
       const url = `https://newsapi.org/v2/everything?q=${query}&domains=${domains}&apiKey=${NEWS_API_KEY}&language=en&sortBy=publishedAt&pageSize=5`;
       
+      console.log('Fetching news from:', url.replace(NEWS_API_KEY, 'API_KEY_HIDDEN'));
+      
       const response = await fetch(url);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch news data');
+        const errorText = await response.text().catch(() => 'No error details available');
+        console.error('News API error:', response.status, errorText);
+        throw new Error(`Failed to fetch news data (${response.status}: ${response.statusText})`);
       }
       
       const data = await response.json();
@@ -265,6 +291,11 @@ const MarketNews = ({ stockData }) => {
     <div className="dashboard-bottom">
       <div className="news-section card">
         <h2>Latest News</h2>
+        {!window.location.hostname.includes('localhost') && (
+          <div className="mock-data-notice" style={{ fontSize: '0.8rem', color: '#666', marginBottom: '10px' }}>
+            Using simulated news data in production (News API free tier works only in development)
+          </div>
+        )}
         {isLoading ? (
           <div className="loading-indicator">Loading news...</div>
         ) : error ? (
