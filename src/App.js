@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
@@ -32,13 +32,13 @@ function Dashboard({ API_URLS, onStockDataChange }) {
   }, []);
 
   // Custom setStockData function that also notifies parent
-  const updateStockData = (data) => {
+  const updateStockData = useCallback((data) => {
     setStockData(data);
     if (onStockDataChange) {
       onStockDataChange(data);
     }
     setDataLoaded(true); // Mark data as loaded after successful fetch
-  };
+  }, [onStockDataChange]); // Dependency: onStockDataChange
 
   useEffect(() => {
     // Prevent fetching if data is already loaded (unless search query changes)

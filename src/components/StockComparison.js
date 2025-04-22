@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, Legend, ResponsiveContainer, ComposedChart, Bar
@@ -80,7 +80,7 @@ const StockComparison = ({ primaryStock = {}, API_URLS = [] }) => {
   }, [primaryStock, comparisonSymbols, API_URLS, dataLoaded, comparisonData, fetchStockData]);
   
   // Helper function to fetch stock data
-  const fetchStockData = async (symbol, dataObject) => {
+  const fetchStockData = useCallback(async (symbol, dataObject) => {
     try {
       // Try each API URL until one works
       for (let i = 0; i < API_URLS.length; i++) {
@@ -116,10 +116,10 @@ const StockComparison = ({ primaryStock = {}, API_URLS = [] }) => {
     } catch (err) {
       console.error(`Error fetching data for ${symbol}:`, err);
     }
-  };
+  }, [API_URLS, generateMockHistoricalData]);
 
   // Generate mock historical data for visualization
-  const generateMockHistoricalData = (currentPrice) => {
+  const generateMockHistoricalData = useCallback((currentPrice) => {
     const data = [];
     
     // For expensive stocks, use smaller volatility to avoid unrealistic swings
@@ -170,7 +170,7 @@ const StockComparison = ({ primaryStock = {}, API_URLS = [] }) => {
     data[data.length - 1].price = parseFloat((currentPrice * (0.995 + Math.random() * 0.01)).toFixed(2));
     
     return data;
-  };
+  }, []);
 
   // Merge historical data for comparison chart
   const prepareComparisonChartData = () => {

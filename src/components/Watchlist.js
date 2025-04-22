@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const Watchlist = ({ API_URLS, onSelectStock }) => {
@@ -41,7 +41,7 @@ const Watchlist = ({ API_URLS, onSelectStock }) => {
   }, [dataLoaded, watchlist.length, API_URLS, fetchWatchlistData]);
 
   // Fetch data for all watchlist symbols
-  const fetchWatchlistData = async (symbols) => {
+  const fetchWatchlistData = useCallback(async (symbols) => {
     if (!symbols || symbols.length === 0) return;
     
     setLoading(true);
@@ -94,7 +94,7 @@ const Watchlist = ({ API_URLS, onSelectStock }) => {
     
     // Save to localStorage (would be DynamoDB in AWS implementation)
     localStorage.setItem('stockWatchlist', JSON.stringify(watchlistData));
-  };
+  }, [API_URLS, setLoading, setWatchlist, setDataLoaded]);
 
   // Add a new symbol to watchlist
   const handleAddToWatchlist = async () => {

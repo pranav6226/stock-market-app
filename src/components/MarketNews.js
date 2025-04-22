@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const MarketNews = ({ stockData }) => {
   const [news, setNews] = useState([]);
@@ -16,7 +16,7 @@ const MarketNews = ({ stockData }) => {
   }, [stockData, fetchNewsForStock]);
   
   // Fetch news from the News API
-  const fetchNewsForStock = async (symbol) => {
+  const fetchNewsForStock = useCallback(async (symbol) => {
     setIsLoading(true);
     setError(null);
     
@@ -67,10 +67,10 @@ const MarketNews = ({ stockData }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [NEWS_API_KEY, getCompanyName, formatNewsDate, fallbackToGeneralFinancialNews, generateMockNews, setIsLoading, setError, setNews]);
   
   // Fallback to general financial news if no specific stock news found
-  const fallbackToGeneralFinancialNews = async (symbol) => {
+  const fallbackToGeneralFinancialNews = useCallback(async (symbol) => {
     try {
       const companyName = getCompanyName(symbol);
       // Try a broader search with top-headlines endpoint and category=business
@@ -106,7 +106,7 @@ const MarketNews = ({ stockData }) => {
       // Fall back to mock news
       setNews(generateMockNews());
     }
-  };
+  }, [NEWS_API_KEY, getCompanyName, formatNewsDate, generateMockNews, setNews]);
   
   // Format the publishedAt date to a relative time
   const formatNewsDate = (dateString) => {
@@ -127,7 +127,7 @@ const MarketNews = ({ stockData }) => {
   };
   
   // Map common stock symbols to company names for better news results
-  const getCompanyName = (symbol) => {
+  const getCompanyName = useCallback((symbol) => {
     const companyMap = {
       'AAPL': 'Apple',
       'MSFT': 'Microsoft',
@@ -152,10 +152,10 @@ const MarketNews = ({ stockData }) => {
     };
     
     return companyMap[symbol] || symbol;
-  };
+  }, []);
   
   // Generate mock news based on the stock data (fallback)
-  const generateMockNews = () => {
+  const generateMockNews = useCallback(() => {
     if (!stockData || !stockData['01. symbol']) return [];
     
     const symbol = stockData['01. symbol'];
@@ -206,7 +206,7 @@ const MarketNews = ({ stockData }) => {
     ];
     
     return newsItems;
-  };
+  }, [stockData, getCompanyName, getStockSector]);
   
   // Get sector for a stock symbol
   const getStockSector = (symbol) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const TechnicalAnalysis = ({ stockData }) => {
   // const [historicalData, setHistoricalData] = useState([]); // Removed as unused
@@ -49,7 +49,7 @@ const TechnicalAnalysis = ({ stockData }) => {
   }, [stockData, calculateTechnicalIndicators]);
 
   // Calculate technical indicators from historical data
-  const calculateTechnicalIndicators = (data, currentStockData) => {
+  const calculateTechnicalIndicators = useCallback((data, currentStockData) => {
     if (!data || data.length < 14) {
       return { error: "Insufficient data for analysis" };
     }
@@ -141,20 +141,20 @@ const TechnicalAnalysis = ({ stockData }) => {
       },
       supportResistance: supportResistance
     };
-  };
+  }, [calculateSMA, calculateRSI, calculateMACD, calculateBollingerBands, calculateTrendStrength, analyzeSupportResistance]);
 
   // Calculate Simple Moving Average
-  const calculateSMA = (prices, period) => {
+  const calculateSMA = useCallback((prices, period) => {
     if (prices.length < period) {
       return prices[prices.length - 1] || 0;
     }
     
     const sum = prices.slice(-period).reduce((total, price) => total + price, 0);
     return sum / period;
-  };
+  }, []);
 
   // Calculate RSI (Relative Strength Index)
-  const calculateRSI = (prices, period = 14) => {
+  const calculateRSI = useCallback((prices, period = 14) => {
     if (prices.length < period + 1) {
       return 50; // Neutral if not enough data
     }
@@ -197,10 +197,10 @@ const TechnicalAnalysis = ({ stockData }) => {
     
     const rs = avgGain / avgLoss;
     return 100 - (100 / (1 + rs));
-  };
+  }, []);
 
   // Calculate MACD
-  const calculateMACD = (prices) => {
+  const calculateMACD = useCallback((prices) => {
     // Default periods: 12, 26, 9
     const fastEMA = calculateEMA(prices, 12);
     const slowEMA = calculateEMA(prices, 26);
@@ -212,10 +212,10 @@ const TechnicalAnalysis = ({ stockData }) => {
     const histogram = macdLine - signalLine;
     
     return { macdLine, signalLine, histogram };
-  };
+  }, [calculateEMA]);
 
   // Calculate Exponential Moving Average
-  const calculateEMA = (prices, period) => {
+  const calculateEMA = useCallback((prices, period) => {
     if (prices.length < period) {
       return prices[prices.length - 1] || 0;
     }
@@ -229,10 +229,10 @@ const TechnicalAnalysis = ({ stockData }) => {
     }
     
     return ema;
-  };
+  }, [calculateSMA]);
 
   // Calculate Bollinger Bands
-  const calculateBollingerBands = (prices, period = 20, stdDev = 2) => {
+  const calculateBollingerBands = useCallback((prices, period = 20, stdDev = 2) => {
     if (prices.length < period) {
       const price = prices[prices.length - 1] || 0;
       return { upper: price * 1.05, middle: price, lower: price * 0.95 };
@@ -254,10 +254,10 @@ const TechnicalAnalysis = ({ stockData }) => {
     const lower = middle - (standardDeviation * stdDev);
     
     return { upper, middle, lower };
-  };
+  }, [calculateSMA]);
 
   // Calculate trend strength
-  const calculateTrendStrength = (prices) => {
+  const calculateTrendStrength = useCallback((prices) => {
     if (prices.length < 10) {
       return { strength: "Unknown", direction: "Neutral" };
     }
@@ -285,10 +285,10 @@ const TechnicalAnalysis = ({ stockData }) => {
     }
     
     return { strength, direction };
-  };
+  }, []);
 
   // Analyze support and resistance levels
-  const analyzeSupportResistance = (prices, currentPrice) => {
+  const analyzeSupportResistance = useCallback((prices, currentPrice) => {
     if (prices.length < 20) {
       return { support: currentPrice * 0.95, resistance: currentPrice * 1.05 };
     }
@@ -338,7 +338,7 @@ const TechnicalAnalysis = ({ stockData }) => {
     }
     
     return { support: parseFloat(support.toFixed(2)), resistance: parseFloat(resistance.toFixed(2)) };
-  };
+  }, []);
 
   // Calculate recommendation based on technical indicators
   const calculateRecommendation = () => {
