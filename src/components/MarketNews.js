@@ -6,7 +6,7 @@ const MarketNews = ({ stockData }) => {
   const [error, setError] = useState(null);
   
   // GNews API key - Replace with your actual key from https://gnews.io/
-  const GNEWS_API_KEY = 'YOUR_GNEWS_API_KEY'; // TODO: Replace with your GNews API key
+  const GNEWS_API_KEY = '8229894c8ef6ea66f9533c14995be5f2'; // TODO: Replace with your GNews API key
   
   // Format the publishedAt date to a relative time
   const formatNewsDate = useCallback((dateString) => {
