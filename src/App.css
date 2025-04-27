@@ -50,7 +50,7 @@
 .dashboard-layout {
   display: grid;
   grid-template-columns: minmax(300px, 30%) 1fr;
-  gap: 20px;
+  gap: 30px;
 }
 
 .dashboard-sidebar {
@@ -62,14 +62,17 @@
 .dashboard-main {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 30px;
+  position: relative;
 }
 
 .dashboard-bottom {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  margin-top: 10px;
+  margin-top: 60px;
+  position: relative;
+  z-index: 0;
 }
 
 .App-footer {
@@ -103,17 +106,32 @@ main {
 
 /* Stock Chart styles with fix for overlapping */
 .stock-chart-container {
-  margin-bottom: 30px; /* Add more space after the chart */
+  margin-bottom: 60px;
+  position: relative;
+  z-index: 1;
 }
 
 .chart-container {
-  margin-bottom: 20px;
+  margin-bottom: 40px;
 }
 
 .price-levels-container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+/* Add clearfix to ensure container expands to contain all floating elements */
+.price-levels-container::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* Make sure the price summary has adequate spacing */
+.price-summary {
+  margin-bottom: 30px;
 }
 
 .chart-controls {
@@ -191,6 +209,19 @@ button.active {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   padding: 20px;
+  margin-bottom: 20px;
+}
+
+/* Specific styles for market news */
+.market-news.card {
+  margin-top: 50px;
+  clear: both; /* Ensure it starts on a new line */
+}
+
+/* Specific styles for market insights */
+.market-insights.card {
+  margin-top: 50px;
+  clear: both; /* Ensure it starts on a new line */
 }
 
 .signals-list {
@@ -615,4 +646,17 @@ button.active {
   color: #f5222d;
 }
 
-/* End of CSS file */ 
+/* End of CSS file */
+
+/* Add more space for news and market insights containers */
+.market-news-container,
+.market-insights-container {
+  margin-top: 20px;
+  position: relative;
+  z-index: 0;
+}
+
+/* Create a larger separation between chart bottom and news/insights */
+.stock-chart-container + .dashboard-bottom {
+  padding-top: 40px;
+} 
