@@ -106,20 +106,22 @@ main {
 
 /* Stock Chart styles with fix for overlapping */
 .stock-chart-container {
-  margin-bottom: 60px;
+  margin-bottom: 80px;
   position: relative;
   z-index: 1;
 }
 
 .chart-container {
-  margin-bottom: 40px;
+  margin-bottom: 50px;
+  padding-bottom: 20px;
 }
 
 .price-levels-container {
   display: flex;
   flex-direction: column;
   gap: 30px;
-  margin-bottom: 30px;
+  margin-bottom: 50px;
+  padding-bottom: 30px;
 }
 
 /* Add clearfix to ensure container expands to contain all floating elements */
@@ -131,7 +133,8 @@ main {
 
 /* Make sure the price summary has adequate spacing */
 .price-summary {
-  margin-bottom: 30px;
+  margin-bottom: 50px;
+  padding-bottom: 30px;
 }
 
 .chart-controls {
@@ -210,6 +213,11 @@ button.active {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   padding: 20px;
   margin-bottom: 20px;
+}
+
+/* Extra padding for chart cards */
+.stock-chart-container.card {
+  padding-bottom: 40px; /* Increase bottom padding */
 }
 
 /* Specific styles for market news */
@@ -658,5 +666,22 @@ button.active {
 
 /* Create a larger separation between chart bottom and news/insights */
 .stock-chart-container + .dashboard-bottom {
-  padding-top: 40px;
+  padding-top: 60px;
+  margin-top: 40px;
+}
+
+/* Add more specific space after Today's Price Summary */
+.today-price-summary {
+  margin-bottom: 60px;
+  padding-bottom: 40px;
+}
+
+/* Add a subtle separator line to create visual space */
+.chart-container:after {
+  content: "";
+  display: block;
+  height: 1px;
+  background-color: #f0f0f0;
+  margin-top: 30px;
+  margin-bottom: 20px;
 } 
