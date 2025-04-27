@@ -24,6 +24,29 @@
   margin-top: 5px;
 }
 
+/* Navigation Links - Updated to look like buttons */
+.navigation-links {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.navigation-links a {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #3a4049;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.navigation-links a:hover {
+  background-color: #4a5059;
+}
+
 .dashboard-layout {
   display: grid;
   grid-template-columns: minmax(300px, 30%) 1fr;
@@ -76,6 +99,39 @@ main {
 .error {
   background-color: #ffe0e0;
   color: #d32f2f;
+}
+
+/* Stock Chart styles with fix for overlapping */
+.stock-chart-container {
+  margin-bottom: 30px; /* Add more space after the chart */
+}
+
+.chart-container {
+  margin-bottom: 20px;
+}
+
+.price-levels-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 10px;
+}
+
+.chart-type-selector {
+  display: flex;
+  gap: 8px;
+}
+
+.time-period-selector {
+  display: flex;
+  gap: 8px;
 }
 
 .stock-container {
@@ -237,16 +293,6 @@ button.active {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
-}
-
-.chart-type-selector {
-  display: flex;
-  gap: 10px;
-}
-
-.chart-type-selector button {
-  padding: 8px 15px;
-  font-size: 14px;
 }
 
 .comparison-symbols {
@@ -538,7 +584,7 @@ button.active {
   .landing-hero p {
     font-size: 1rem;
   }
-}
+} 
 
 /* Institutional Holders Styles */
 .institutional-holders-card {

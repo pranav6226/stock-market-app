@@ -93,11 +93,21 @@ const StockChart = ({ stockData }) => {
     }
     
     try {
+      console.log('Stock Data:', stockData);
+      // Log the data we're using for debugging
+      if (sectorData) console.log('Sector Data:', sectorData);
+      if (marketData) console.log('Market Data:', marketData);
+      
       // Stock data with safety checks
       const stockPrice = parseFloat(stockData['05. price']) || 0;
-      const stockChange = parseFloat(stockData['09. change'] || 0);
+      const stockPreviousClose = parseFloat(stockData['08. previous close'] || 0);
+      
+      // Calculate true percentage change from previous close to current price
+      const stockChange = stockPrice - stockPreviousClose;
       // Avoid division by zero
-      const stockPercentChange = stockPrice === 0 ? 0 : (stockChange / stockPrice) * 100;
+      const stockPercentChange = stockPreviousClose === 0 ? 0 : (stockChange / stockPreviousClose) * 100;
+      
+      console.log(`Stock: ${stockData['01. symbol']} - Previous: ${stockPreviousClose}, Current: ${stockPrice}, Change: ${stockChange}, Percent: ${stockPercentChange}%`);
       
       const result = [
         {
@@ -108,12 +118,17 @@ const StockChart = ({ stockData }) => {
       ];
       
       // Add sector data if available
-      if (sectorData && sectorData['05. price'] && sectorData['09. change']) {
+      if (sectorData && sectorData['05. price'] && sectorData['08. previous close']) {
         try {
-          const sectorChange = parseFloat(sectorData['09. change']);
           const sectorPrice = parseFloat(sectorData['05. price']);
+          const sectorPreviousClose = parseFloat(sectorData['08. previous close']);
+          
+          // Calculate true percentage change instead of using the provided change value
+          const sectorChange = sectorPrice - sectorPreviousClose;
           // Avoid division by zero
-          const sectorPercentChange = sectorPrice === 0 ? 0 : (sectorChange / sectorPrice) * 100;
+          const sectorPercentChange = sectorPreviousClose === 0 ? 0 : (sectorChange / sectorPreviousClose) * 100;
+          
+          console.log(`Sector: ${sectorData['01. symbol']} - Previous: ${sectorPreviousClose}, Current: ${sectorPrice}, Change: ${sectorChange}, Percent: ${sectorPercentChange}%`);
           
           result.push({
             name: `${sectorData['01. symbol'] || 'Sector'} (Sector)`,
@@ -121,6 +136,7 @@ const StockChart = ({ stockData }) => {
             fill: sectorPercentChange >= 0 ? '#4CAF50' : '#F44336'
           });
         } catch (error) {
+          console.error("Error calculating sector performance:", error);
           // Fallback for sector if calculation fails
           result.push({
             name: 'Sector Avg',
@@ -138,12 +154,17 @@ const StockChart = ({ stockData }) => {
       }
       
       // Add market index data if available
-      if (marketData && marketData['05. price'] && marketData['09. change']) {
+      if (marketData && marketData['05. price'] && marketData['08. previous close']) {
         try {
-          const marketChange = parseFloat(marketData['09. change']);
           const marketPrice = parseFloat(marketData['05. price']);
+          const marketPreviousClose = parseFloat(marketData['08. previous close']);
+          
+          // Calculate true percentage change
+          const marketChange = marketPrice - marketPreviousClose;
           // Avoid division by zero
-          const marketPercentChange = marketPrice === 0 ? 0 : (marketChange / marketPrice) * 100;
+          const marketPercentChange = marketPreviousClose === 0 ? 0 : (marketChange / marketPreviousClose) * 100;
+          
+          console.log(`Market: ${marketData['01. symbol']} - Previous: ${marketPreviousClose}, Current: ${marketPrice}, Change: ${marketChange}, Percent: ${marketPercentChange}%`);
           
           result.push({
             name: `${marketData['01. symbol'] || 'Market'} (Market)`,
@@ -151,6 +172,7 @@ const StockChart = ({ stockData }) => {
             fill: marketPercentChange >= 0 ? '#4CAF50' : '#F44336'
           });
         } catch (error) {
+          console.error("Error calculating market performance:", error);
           // Fallback for market if calculation fails
           result.push({
             name: 'Market Index',
@@ -167,6 +189,7 @@ const StockChart = ({ stockData }) => {
         });
       }
       
+      console.log("Final comparison data:", result);
       return result;
     } catch (error) {
       console.error("Error generating comparison data:", error);
