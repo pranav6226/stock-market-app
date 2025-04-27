@@ -92,60 +92,91 @@ const StockChart = ({ stockData }) => {
       return [];
     }
     
-    // Stock data
-    const stockPrice = parseFloat(stockData['05. price']);
-    const stockChange = parseFloat(stockData['09. change'] || 0);
-    const stockPercentChange = (stockChange / stockPrice) * 100;
-    
-    const result = [
-      {
-        name: stockData['01. symbol'],
-        performance: parseFloat(stockPercentChange.toFixed(2)),
-        fill: stockPercentChange >= 0 ? '#4CAF50' : '#F44336'
+    try {
+      // Stock data with safety checks
+      const stockPrice = parseFloat(stockData['05. price']) || 0;
+      const stockChange = parseFloat(stockData['09. change'] || 0);
+      // Avoid division by zero
+      const stockPercentChange = stockPrice === 0 ? 0 : (stockChange / stockPrice) * 100;
+      
+      const result = [
+        {
+          name: stockData['01. symbol'] || 'Stock',
+          performance: parseFloat(stockPercentChange.toFixed(2)),
+          fill: stockPercentChange >= 0 ? '#4CAF50' : '#F44336'
+        }
+      ];
+      
+      // Add sector data if available
+      if (sectorData && sectorData['05. price'] && sectorData['09. change']) {
+        try {
+          const sectorChange = parseFloat(sectorData['09. change']);
+          const sectorPrice = parseFloat(sectorData['05. price']);
+          // Avoid division by zero
+          const sectorPercentChange = sectorPrice === 0 ? 0 : (sectorChange / sectorPrice) * 100;
+          
+          result.push({
+            name: `${sectorData['01. symbol'] || 'Sector'} (Sector)`,
+            performance: parseFloat(sectorPercentChange.toFixed(2)),
+            fill: sectorPercentChange >= 0 ? '#4CAF50' : '#F44336'
+          });
+        } catch (error) {
+          // Fallback for sector if calculation fails
+          result.push({
+            name: 'Sector Avg',
+            performance: 0,
+            fill: '#9E9E9E'
+          });
+        }
+      } else {
+        // Default sector if data not available yet
+        result.push({
+          name: 'Sector Avg',
+          performance: 0,
+          fill: '#9E9E9E'
+        });
       }
-    ];
-    
-    // Add sector data if available
-    if (sectorData && sectorData['05. price'] && sectorData['09. change']) {
-      const sectorChange = parseFloat(sectorData['09. change']);
-      const sectorPrice = parseFloat(sectorData['05. price']);
-      const sectorPercentChange = (sectorChange / sectorPrice) * 100;
       
-      result.push({
-        name: `${sectorData['01. symbol']} (Sector)`,
-        performance: parseFloat(sectorPercentChange.toFixed(2)),
-        fill: sectorPercentChange >= 0 ? '#4CAF50' : '#F44336'
-      });
-    } else {
-      // Default sector if data not available yet
-      result.push({
-        name: 'Sector Avg',
-        performance: 0,
-        fill: '#9E9E9E'
-      });
-    }
-    
-    // Add market index data if available
-    if (marketData && marketData['05. price'] && marketData['09. change']) {
-      const marketChange = parseFloat(marketData['09. change']);
-      const marketPrice = parseFloat(marketData['05. price']);
-      const marketPercentChange = (marketChange / marketPrice) * 100;
+      // Add market index data if available
+      if (marketData && marketData['05. price'] && marketData['09. change']) {
+        try {
+          const marketChange = parseFloat(marketData['09. change']);
+          const marketPrice = parseFloat(marketData['05. price']);
+          // Avoid division by zero
+          const marketPercentChange = marketPrice === 0 ? 0 : (marketChange / marketPrice) * 100;
+          
+          result.push({
+            name: `${marketData['01. symbol'] || 'Market'} (Market)`,
+            performance: parseFloat(marketPercentChange.toFixed(2)),
+            fill: marketPercentChange >= 0 ? '#4CAF50' : '#F44336'
+          });
+        } catch (error) {
+          // Fallback for market if calculation fails
+          result.push({
+            name: 'Market Index',
+            performance: 0,
+            fill: '#9E9E9E'
+          });
+        }
+      } else {
+        // Default market if data not available yet
+        result.push({
+          name: 'Market Index',
+          performance: 0,
+          fill: '#9E9E9E'
+        });
+      }
       
-      result.push({
-        name: `${marketData['01. symbol']} (Market)`,
-        performance: parseFloat(marketPercentChange.toFixed(2)),
-        fill: marketPercentChange >= 0 ? '#4CAF50' : '#F44336'
-      });
-    } else {
-      // Default market if data not available yet
-      result.push({
-        name: 'Market Index',
-        performance: 0,
-        fill: '#9E9E9E'
-      });
+      return result;
+    } catch (error) {
+      console.error("Error generating comparison data:", error);
+      // Return fallback data if anything fails
+      return [
+        { name: 'Stock', performance: 0, fill: '#9E9E9E' },
+        { name: 'Sector', performance: 0, fill: '#9E9E9E' },
+        { name: 'Market', performance: 0, fill: '#9E9E9E' }
+      ];
     }
-    
-    return result;
   };
 
   const comparisonData = generateComparisonData();
@@ -240,9 +271,27 @@ const StockChart = ({ stockData }) => {
     const priceLevelsData = generatePriceLevelsData();
     const candlestickData = prepareCandlestickData();
     
+    // Make sure we have valid data
     if (!priceLevelsData.length || !candlestickData.length) {
       return <div>No data available for price levels</div>;
     }
+
+    // Ensure data has proper values
+    const validPriceLevelsData = priceLevelsData.map(item => ({
+      ...item,
+      value: isNaN(item.value) ? 0 : item.value,
+      fill: item.fill || '#8884d8'
+    }));
+
+    const validCandlestickData = candlestickData.map(item => ({
+      ...item,
+      date: item.date || 'Unknown',
+      open: isNaN(item.open) ? 0 : item.open,
+      high: isNaN(item.high) ? 0 : item.high,
+      low: isNaN(item.low) ? 0 : item.low,
+      close: isNaN(item.close) ? 0 : item.close,
+      volume: isNaN(item.volume) ? 0 : item.volume
+    }));
 
     return (
       <div className="chart-container">
@@ -251,7 +300,7 @@ const StockChart = ({ stockData }) => {
           <div className="candlestick-chart">
             <h4>Last 10 Trading Days</h4>
             <ResponsiveContainer width="100%" height={250}>
-              <ComposedChart data={candlestickData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <ComposedChart data={validCandlestickData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis domain={['auto', 'auto']} />
@@ -290,7 +339,7 @@ const StockChart = ({ stockData }) => {
             <h4>Today's Price Summary</h4>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart 
-                data={priceLevelsData} 
+                data={validPriceLevelsData} 
                 layout="vertical"
                 margin={{ top: 5, right: 30, left: 50, bottom: 5 }}
               >
@@ -320,12 +369,19 @@ const StockChart = ({ stockData }) => {
       return <div>No historical data available</div>;
     }
 
+    // Ensure the data is valid for the chart
+    const validHistoricalData = historicalData.map(item => ({
+      ...item,
+      date: item.date || 'Unknown',
+      price: isNaN(parseFloat(item.price)) ? 0 : parseFloat(item.price)
+    }));
+
     return (
       <div className="chart-container">
         <h3>Daily Price Chart</h3>
         <ResponsiveContainer width="100%" height={400}>
           <LineChart
-            data={historicalData}
+            data={validHistoricalData}
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
@@ -355,12 +411,25 @@ const StockChart = ({ stockData }) => {
 
   // Render comparison chart
   const renderComparisonChart = () => {
+    // Make sure comparisonData is valid and not empty
+    if (!comparisonData || !comparisonData.length || comparisonData.some(item => item.performance === undefined)) {
+      return <div>No comparison data available</div>;
+    }
+
+    // Ensure all data points have the required values
+    const validData = comparisonData.map(entry => ({
+      ...entry,
+      // Ensure performance has a valid number value
+      performance: isNaN(entry.performance) ? 0 : entry.performance,
+      fill: entry.fill || '#8884d8'
+    }));
+
     return (
       <div className="chart-container">
         <h3>Performance Comparison</h3>
         <ResponsiveContainer width="100%" height={400}>
           <BarChart
-            data={comparisonData}
+            data={validData}
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
@@ -368,8 +437,8 @@ const StockChart = ({ stockData }) => {
             <YAxis 
               tickFormatter={(value) => `${value}%`}
               domain={[
-                dataMin => Math.min(dataMin, -2),
-                dataMax => Math.max(dataMax, 2)
+                dataMin => Math.min(Math.floor(dataMin), -2),
+                dataMax => Math.max(Math.ceil(dataMax), 2)
               ]}
             />
             <Tooltip 
@@ -378,7 +447,7 @@ const StockChart = ({ stockData }) => {
             <Legend />
             <Bar dataKey="performance" fill="#8884d8">
               {
-                comparisonData.map((entry, index) => (
+                validData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />
                 ))
               }
