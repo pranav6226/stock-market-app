@@ -86,23 +86,6 @@ const StockChart = ({ stockData }) => {
       });
   };
   
-  // Creating data for current day price levels
-  const prepareChartData = () => {
-    if (!stockData || !stockData['05. price']) {
-      return [];
-    }
-
-    const basePrice = parseFloat(stockData['05. price']);
-    
-    // Create daily price data for visualization
-    return [
-      { name: 'Open', price: parseFloat(stockData['02. open']) },
-      { name: 'Low', price: parseFloat(stockData['04. low']) },
-      { name: 'Current', price: basePrice },
-      { name: 'High', price: parseFloat(stockData['03. high']) },
-    ];
-  };
-
   // Generate data for price comparison with sector and index using real data
   const generateComparisonData = () => {
     if (!stockData || !stockData['05. price']) {
@@ -165,7 +148,6 @@ const StockChart = ({ stockData }) => {
     return result;
   };
 
-  const chartData = prepareChartData();
   const comparisonData = generateComparisonData();
   
   // Determine if stock is up or down for color schemes
