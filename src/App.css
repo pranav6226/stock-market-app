@@ -538,4 +538,35 @@ button.active {
   .landing-hero p {
     font-size: 1rem;
   }
-} 
+}
+
+/* Institutional Holders Styles */
+.institutional-holders-card {
+  margin-top: 20px;
+}
+
+.institutional-holders-card .ant-table {
+  margin-top: 15px;
+}
+
+.institutional-holders-card .ant-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.institutional-holders-card .ant-radio-group {
+  margin-bottom: 0;
+}
+
+.institutional-holders-card .loading-container,
+.institutional-holders-card .error-container {
+  padding: 20px;
+  text-align: center;
+}
+
+.institutional-holders-card .error-container {
+  color: #f5222d;
+}
+
+/* End of CSS file */ 

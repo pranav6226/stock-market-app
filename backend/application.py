@@ -423,6 +423,357 @@ def get_mock_stock_history(symbol, period='1mo', interval='1d'):
     response = jsonify(response_data)
     return response
 
+@application.route('/api/company', methods=['GET', 'OPTIONS'])
+def get_company_overview():
+    # Print debugging info
+    print(f"Received company overview request for: {request.url}")
+    print(f"Method: {request.method}")
+    
+    try:
+        # Get the stock symbol from the query parameters
+        symbol = request.args.get('symbol', 'AAPL').upper()  # Default to AAPL if not provided
+        print(f"Looking up company data for: {symbol}")
+        
+        # Get stock data first to use in calculations
+        try:
+            # Yahoo Finance API URL for stock quote
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+            
+            # Add parameters for data we want
+            params = {
+                "region": "US",
+                "lang": "en-US",
+                "includePrePost": "false",
+                "interval": "1d",
+                "range": "1d",
+                "corsDomain": "finance.yahoo.com",
+                ".tsrc": "finance"
+            }
+            
+            # Make the request with proper headers
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)"
+            }
+            
+            response = requests.get(url, params=params, headers=headers, timeout=5)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data and 'chart' in data and 'result' in data['chart'] and data['chart']['result']:
+                    result = data['chart']['result'][0]
+                    meta = result['meta']
+                    current_price = meta.get('regularMarketPrice', 0)
+                else:
+                    current_price = 0
+            else:
+                current_price = 0
+                
+        except Exception as error:
+            print(f"Error fetching stock data: {str(error)}")
+            current_price = 0
+        
+        # Now try to get company overview data
+        try:
+            # Create URL for Yahoo Finance modules
+            modules = "assetProfile,summaryDetail,financialData,defaultKeyStatistics,majorHoldersBreakdown"
+            url = f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{symbol}?modules={modules}"
+            
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)"
+            }
+            
+            print(f"Requesting company data from Yahoo Finance for {symbol}")
+            response = requests.get(url, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if data and 'quoteSummary' in data and 'result' in data['quoteSummary'] and data['quoteSummary']['result']:
+                    result = data['quoteSummary']['result'][0]
+                    
+                    # Extract data from different modules
+                    asset_profile = result.get('assetProfile', {})
+                    summary_detail = result.get('summaryDetail', {})
+                    financial_data = result.get('financialData', {})
+                    key_stats = result.get('defaultKeyStatistics', {})
+                    major_holders = result.get('majorHoldersBreakdown', {})
+                    
+                    # Create company overview object
+                    company_data = {
+                        # Basic info
+                        "Symbol": symbol,
+                        "Name": asset_profile.get('name', symbol),
+                        "Description": asset_profile.get('longBusinessSummary', ''),
+                        "Sector": asset_profile.get('sector', 'N/A'),
+                        "Industry": asset_profile.get('industry', 'N/A'),
+                        
+                        # Financial metrics
+                        "MarketCapitalization": summary_detail.get('marketCap', {}).get('raw', 0),
+                        "EBITDA": financial_data.get('ebitda', {}).get('raw', 0),
+                        "PERatio": summary_detail.get('trailingPE', {}).get('raw', 0),
+                        "PEGRatio": key_stats.get('pegRatio', {}).get('raw', 0),
+                        "BookValue": key_stats.get('bookValue', {}).get('raw', 0),
+                        "DividendYield": summary_detail.get('dividendYield', {}).get('raw', 0),
+                        "EPS": key_stats.get('trailingEps', {}).get('raw', 0),
+                        "RevenuePerShareTTM": financial_data.get('revenuePerShare', {}).get('raw', 0),
+                        "ProfitMargin": financial_data.get('profitMargins', {}).get('raw', 0),
+                        
+                        # Price metrics
+                        "52WeekHigh": summary_detail.get('fiftyTwoWeekHigh', {}).get('raw', 0),
+                        "52WeekLow": summary_detail.get('fiftyTwoWeekLow', {}).get('raw', 0),
+                        "50DayMovingAverage": summary_detail.get('fiftyDayAverage', {}).get('raw', 0),
+                        "200DayMovingAverage": summary_detail.get('twoHundredDayAverage', {}).get('raw', 0),
+                        
+                        # Company info
+                        "FullTimeEmployees": asset_profile.get('fullTimeEmployees', 0),
+                        "Country": asset_profile.get('country', ''),
+                        "Website": asset_profile.get('website', ''),
+                    }
+                    
+                    # Extract institutional ownership data
+                    try:
+                        # Yahoo Finance doesn't directly provide detailed institutional holders
+                        # We'll use their summary stats and generate some sample holders
+                        
+                        insiders_percent = major_holders.get('insiderPercentHeld', {}).get('raw', 0)
+                        institutions_percent = major_holders.get('institutionsPercentHeld', {}).get('raw', 0)
+                        
+                        # Add institutional breakdown to company data
+                        company_data["InsiderOwnership"] = insiders_percent * 100
+                        company_data["InstitutionalOwnership"] = institutions_percent * 100
+                        
+                        # Estimate outstanding shares from market cap and price
+                        if current_price > 0:
+                            outstanding_shares = int(company_data["MarketCapitalization"] / current_price)
+                        else:
+                            outstanding_shares = 0
+                        
+                        company_data["SharesOutstanding"] = outstanding_shares
+                        
+                        # Generate mock institutional holders data based on real percentages
+                        company_data["InstitutionalOwnership"] = generate_institutional_holders(
+                            symbol, 
+                            outstanding_shares, 
+                            institutions_percent,
+                            current_price
+                        )
+                    except Exception as e:
+                        print(f"Error processing institutional data: {str(e)}")
+                        company_data["InstitutionalOwnership"] = generate_institutional_holders(
+                            symbol, 0, 0.65, current_price
+                        )
+                    
+                    print(f"SUCCESS: Got company data for {symbol}")
+                    return jsonify(company_data)
+                else:
+                    print(f"Invalid company data format for {symbol}")
+            else:
+                print(f"Failed to get company data: {response.status_code}")
+                
+        except Exception as request_err:
+            print(f"Error fetching company data for {symbol}: {str(request_err)}")
+        
+        # Fall back to mock data
+        print(f"FALLBACK: Using mock company data for {symbol}")
+        return generate_mock_company_data(symbol, current_price)
+        
+    except Exception as e:
+        print(f"GENERAL ERROR in company data: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
+def generate_institutional_holders(symbol, outstanding_shares, institutions_percent, current_price):
+    # Generate realistic institutional holders data
+    
+    # If we don't have outstanding shares, use a default value
+    if outstanding_shares <= 0:
+        if current_price < 50:
+            outstanding_shares = random.randint(1000000000, 5000000000)
+        elif current_price < 200:
+            outstanding_shares = random.randint(500000000, 2000000000)
+        elif current_price < 500:
+            outstanding_shares = random.randint(100000000, 500000000)
+        else:
+            outstanding_shares = random.randint(50000000, 200000000)
+    
+    # If we don't have institutions percent, use a default value
+    if institutions_percent <= 0:
+        institutions_percent = 0.65  # 65% is typical for large caps
+    
+    # Calculate total shares held by institutions
+    total_institutional_shares = int(outstanding_shares * institutions_percent)
+    
+    # Major institutional holders (these are real common institutional investors)
+    institutions = [
+        {"name": "Vanguard Group Inc.", "weight": 0.15},
+        {"name": "BlackRock Inc.", "weight": 0.12},
+        {"name": "State Street Corporation", "weight": 0.08},
+        {"name": "Fidelity Management & Research", "weight": 0.06},
+        {"name": "Capital Group Companies", "weight": 0.05},
+        {"name": "T. Rowe Price Associates", "weight": 0.04},
+        {"name": "Geode Capital Management", "weight": 0.03},
+        {"name": "Northern Trust Corporation", "weight": 0.03},
+        {"name": "Wellington Management", "weight": 0.03},
+        {"name": "Morgan Stanley", "weight": 0.02},
+        {"name": "Bank of America Corporation", "weight": 0.02},
+        {"name": "Invesco Ltd.", "weight": 0.02},
+        {"name": "Charles Schwab Investment Management", "weight": 0.02}
+    ]
+    
+    # Allocate shares to institutions with some randomness
+    institutional_holders = []
+    remaining_weight = 1.0
+    remaining_shares = total_institutional_shares
+    
+    for i, institution in enumerate(institutions):
+        # Add some randomness to weights (±20%)
+        actual_weight = institution["weight"] * (0.8 + random.random() * 0.4)
+        
+        # For the last institution, allocate remaining shares
+        if i == len(institutions) - 1:
+            shares = remaining_shares
+        else:
+            # Calculate shares based on weight and add some randomness
+            weight_of_remaining = actual_weight / remaining_weight
+            shares = int(remaining_shares * weight_of_remaining)
+            remaining_shares -= shares
+            remaining_weight -= actual_weight
+        
+        # Calculate dollar value of holdings
+        value = int(shares * current_price)
+        
+        institutional_holders.append({
+            "name": institution["name"],
+            "shares": shares,
+            "value": value
+        })
+    
+    return institutional_holders
+
+def generate_mock_company_data(symbol, current_price):
+    # Generate mock company overview data when the API fails
+    
+    # Basic company data based on symbol first letter (industry grouping)
+    first_letter = symbol[0].upper()
+    
+    if first_letter in 'ABC':
+        sector = "Technology"
+        industry = random.choice(["Software—Application", "Software—Infrastructure", "Semiconductors", "Electronic Components"])
+        employee_range = (1000, 50000)
+    elif first_letter in 'DEF':
+        sector = "Healthcare"
+        industry = random.choice(["Drug Manufacturers", "Medical Devices", "Biotechnology", "Healthcare Plans"])
+        employee_range = (500, 30000)
+    elif first_letter in 'GHI':
+        sector = "Financial"
+        industry = random.choice(["Banks—Regional", "Insurance", "Asset Management", "Financial Data & Stock Exchanges"])
+        employee_range = (1000, 80000)
+    elif first_letter in 'JKL':
+        sector = "Consumer Cyclical"
+        industry = random.choice(["Auto Manufacturers", "Retail", "Footwear & Accessories", "Restaurants"])
+        employee_range = (2000, 100000)
+    elif first_letter in 'MNO':
+        sector = "Industrial"
+        industry = random.choice(["Aerospace & Defense", "Farm & Heavy Equipment", "Manufacturing", "Building Materials"])
+        employee_range = (5000, 150000)
+    elif first_letter in 'PQR':
+        sector = "Communication Services"
+        industry = random.choice(["Telecom", "Entertainment", "Media", "Internet Content & Information"])
+        employee_range = (1000, 40000)
+    elif first_letter in 'STU':
+        sector = "Consumer Defensive"
+        industry = random.choice(["Packaged Foods", "Beverages", "Household Products", "Discount Stores"])
+        employee_range = (5000, 200000)
+    else:
+        sector = "Energy"
+        industry = random.choice(["Oil & Gas E&P", "Oil & Gas Equipment & Services", "Utilities—Regulated", "Renewable Energy"])
+        employee_range = (500, 20000)
+        
+    # Generate financial metrics based on current price
+    if current_price <= 0:
+        current_price = random.uniform(30, 200)
+    
+    # Market cap based on price
+    if current_price < 20:
+        market_cap = random.randint(500000000, 2000000000)  # Small cap
+    elif current_price < 50:
+        market_cap = random.randint(2000000000, 10000000000)  # Mid cap
+    elif current_price < 200:
+        market_cap = random.randint(10000000000, 100000000000)  # Large cap
+    else:
+        market_cap = random.randint(100000000000, 1000000000000)  # Mega cap
+    
+    # Outstanding shares based on market cap and price
+    outstanding_shares = int(market_cap / current_price)
+    
+    # PE ratio (realistic for sector)
+    if sector in ["Technology", "Communication Services"]:
+        pe_ratio = random.uniform(20, 40)
+    elif sector in ["Healthcare", "Consumer Cyclical"]:
+        pe_ratio = random.uniform(15, 30)
+    elif sector in ["Financial", "Energy"]:
+        pe_ratio = random.uniform(8, 20)
+    else:
+        pe_ratio = random.uniform(10, 25)
+    
+    # Historical price metrics
+    week_52_high = current_price * (1 + random.uniform(0.05, 0.3))
+    week_52_low = current_price * (1 - random.uniform(0.05, 0.4))
+    day_50_ma = current_price * (1 + random.uniform(-0.07, 0.07))
+    day_200_ma = current_price * (1 + random.uniform(-0.1, 0.1))
+    
+    # Company description
+    description = f"{symbol} is a leading {industry} company in the {sector} sector. "
+    description += f"The company specializes in providing innovative solutions to customers worldwide. "
+    description += f"With a strong market position and commitment to growth, {symbol} continues to expand its operations globally."
+    
+    # Dividend yield varies by sector
+    if sector in ["Financial", "Energy", "Consumer Defensive"]:
+        dividend_yield = random.uniform(0.02, 0.05)  # 2-5%
+    elif sector in ["Industrial", "Healthcare"]:
+        dividend_yield = random.uniform(0.005, 0.025)  # 0.5-2.5%
+    else:
+        dividend_yield = random.uniform(0, 0.015)  # 0-1.5%
+    
+    company_data = {
+        # Basic info
+        "Symbol": symbol,
+        "Name": f"{symbol} Inc.",
+        "Description": description,
+        "Sector": sector,
+        "Industry": industry,
+        
+        # Financial metrics
+        "MarketCapitalization": market_cap,
+        "EBITDA": int(market_cap * random.uniform(0.05, 0.15)),
+        "PERatio": round(pe_ratio, 2),
+        "PEGRatio": round(pe_ratio / random.uniform(1.0, 3.0), 2),
+        "BookValue": round(current_price / random.uniform(1.5, 5.0), 2),
+        "DividendYield": dividend_yield,
+        "EPS": round(current_price / pe_ratio, 2),
+        "RevenuePerShareTTM": round(current_price * random.uniform(0.1, 0.5), 2),
+        "ProfitMargin": round(random.uniform(0.05, 0.25), 4),
+        
+        # Price metrics
+        "52WeekHigh": round(week_52_high, 2),
+        "52WeekLow": round(week_52_low, 2),
+        "50DayMovingAverage": round(day_50_ma, 2),
+        "200DayMovingAverage": round(day_200_ma, 2),
+        
+        # Company info
+        "FullTimeEmployees": random.randint(employee_range[0], employee_range[1]),
+        "Country": "United States",
+        "Website": f"https://www.{symbol.lower()}.com",
+        
+        # Institutional ownership
+        "InstitutionalOwnership": generate_institutional_holders(
+            symbol, outstanding_shares, random.uniform(0.6, 0.8), current_price
+        )
+    }
+    
+    print(f"Generated mock company data for {symbol}")
+    return jsonify(company_data)
+
 if __name__ == '__main__':
     # Using port 5001 instead of 5000 to avoid conflict with AirPlay on macOS
     print("Starting Flask server on 0.0.0.0:5001...")
