@@ -170,7 +170,7 @@ const StockChart = ({ stockData }) => {
   const comparisonData = generateComparisonData();
   
   // Determine if stock is up or down for color schemes
-  const isStockUp = parseFloat(stockData['09. change'] || 0) >= 0;
+  const isStockUp = parseFloat(stockData?.['09. change'] || 0) >= 0;
   const mainColor = isStockUp ? '#4CAF50' : '#F44336';
 
   // Chart type options
@@ -180,6 +180,60 @@ const StockChart = ({ stockData }) => {
     { id: 'volume', label: 'Volume Analysis' },
     { id: 'comparison', label: 'Performance Comparison' }
   ];
+
+  // Function to generate price levels data - moved outside conditional rendering
+  const generatePriceLevelsData = useCallback(() => {
+    if (!stockData) return [];
+
+    const open = parseFloat(stockData?.['02. open'] || 0);
+    const high = parseFloat(stockData?.['03. high'] || 0);
+    const low = parseFloat(stockData?.['04. low'] || 0);
+    const price = parseFloat(stockData?.['05. price'] || 0);
+    const previousClose = parseFloat(stockData?.['08. previous close'] || 0);
+
+    return [
+      {
+        name: 'Previous Close',
+        value: previousClose,
+        fill: '#8884d8'
+      },
+      {
+        name: 'Open',
+        value: open,
+        fill: '#82ca9d'
+      },
+      {
+        name: 'Low',
+        value: low,
+        fill: '#ff8042'
+      },
+      {
+        name: 'Price',
+        value: price,
+        fill: '#ffc658'
+      },
+      {
+        name: 'High',
+        value: high,
+        fill: '#0088FE'
+      }
+    ];
+  }, [stockData]);
+
+  // Function to prepare candlestick data - moved outside conditional rendering
+  const prepareCandlestickData = useCallback(() => {
+    if (!historicalData || !historicalData.length) return [];
+    
+    // Get the last 10 trading days for the candlestick chart
+    return historicalData.slice(0, 10).map(item => ({
+      date: item.date,
+      open: parseFloat(item.open),
+      high: parseFloat(item.high),
+      low: parseFloat(item.low),
+      close: parseFloat(item.price),
+      volume: parseFloat(item.volume)
+    }));
+  }, [historicalData]);
 
   // Loading state
   if ((chartType === 'line' || chartType === 'volume') && isLoading) {
@@ -350,66 +404,12 @@ const StockChart = ({ stockData }) => {
     }
   };
 
-  // Function to generate price levels data
-  const generatePriceLevelsData = useCallback(() => {
-    if (!stockData) return null;
-
-    const open = parseFloat(stockData?.['02. open'] || 0);
-    const high = parseFloat(stockData?.['03. high'] || 0);
-    const low = parseFloat(stockData?.['04. low'] || 0);
-    const price = parseFloat(stockData?.['05. price'] || 0);
-    const previousClose = parseFloat(stockData?.['08. previous close'] || 0);
-
-    return [
-      {
-        name: 'Previous Close',
-        value: previousClose,
-        fill: '#8884d8'
-      },
-      {
-        name: 'Open',
-        value: open,
-        fill: '#82ca9d'
-      },
-      {
-        name: 'Low',
-        value: low,
-        fill: '#ff8042'
-      },
-      {
-        name: 'Price',
-        value: price,
-        fill: '#ffc658'
-      },
-      {
-        name: 'High',
-        value: high,
-        fill: '#0088FE'
-      }
-    ];
-  }, [stockData]);
-
-  // Function to prepare candlestick data for enhanced price levels graph
-  const prepareCandlestickData = useCallback(() => {
-    if (!historicalData || !historicalData.length) return [];
-    
-    // Get the last 10 trading days for the candlestick chart
-    return historicalData.slice(0, 10).map(item => ({
-      date: item.date,
-      open: parseFloat(item.open),
-      high: parseFloat(item.high),
-      low: parseFloat(item.low),
-      close: parseFloat(item.price),
-      volume: parseFloat(item.volume)
-    }));
-  }, [historicalData]);
-
   // Enhanced rendering of the price levels chart
   const renderPriceLevelsChart = () => {
     const priceLevelsData = generatePriceLevelsData();
     const candlestickData = prepareCandlestickData();
     
-    if (!priceLevelsData || !candlestickData.length) {
+    if (!priceLevelsData.length || !candlestickData.length) {
       return <div>No data available for price levels</div>;
     }
 
@@ -582,34 +582,36 @@ const StockChart = ({ stockData }) => {
           </button>
         </div>
         
-        {chartType === 'daily' && (
-          <div className="time-period-selector">
-            <button
-              className={timePeriod === '1M' ? 'active' : ''}
-              onClick={() => setTimePeriod('1M')}
-            >
-              1M
-            </button>
-            <button
-              className={timePeriod === '3M' ? 'active' : ''}
-              onClick={() => setTimePeriod('3M')}
-            >
-              3M
-            </button>
-            <button
-              className={timePeriod === '6M' ? 'active' : ''}
-              onClick={() => setTimePeriod('6M')}
-            >
-              6M
-            </button>
-            <button
-              className={timePeriod === '1Y' ? 'active' : ''}
-              onClick={() => setTimePeriod('1Y')}
-            >
-              1Y
-            </button>
-          </div>
-        )}
+        <div className="time-period-selector">
+          {chartType === 'daily' && (
+            <>
+              <button
+                className={timePeriod === '1M' ? 'active' : ''}
+                onClick={() => setTimePeriod('1M')}
+              >
+                1M
+              </button>
+              <button
+                className={timePeriod === '3M' ? 'active' : ''}
+                onClick={() => setTimePeriod('3M')}
+              >
+                3M
+              </button>
+              <button
+                className={timePeriod === '6M' ? 'active' : ''}
+                onClick={() => setTimePeriod('6M')}
+              >
+                6M
+              </button>
+              <button
+                className={timePeriod === '1Y' ? 'active' : ''}
+                onClick={() => setTimePeriod('1Y')}
+              >
+                1Y
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="chart-content">
