@@ -283,55 +283,48 @@ const StockChart = ({ stockData }) => {
       fill: item.fill || '#8884d8'
     }));
 
-    const validCandlestickData = candlestickData.map(item => ({
-      ...item,
+    // Convert to a simpler data structure to avoid recharts errors
+    const simplifiedTradeData = candlestickData.slice(0, 10).map(item => ({
       date: item.date || 'Unknown',
-      open: isNaN(item.open) ? 0 : item.open,
-      high: isNaN(item.high) ? 0 : item.high,
-      low: isNaN(item.low) ? 0 : item.low,
-      close: isNaN(item.close) ? 0 : item.close,
-      volume: isNaN(item.volume) ? 0 : item.volume
+      price: isNaN(item.close) ? 0 : item.close
     }));
 
     return (
       <div className="chart-container">
         <h3>Price Levels</h3>
         <div className="price-levels-container">
-          <div className="candlestick-chart">
-            <h4>Last 10 Trading Days</h4>
+          <div className="recent-price-chart">
+            <h4>Recent Price History</h4>
             <ResponsiveContainer width="100%" height={250}>
-              <ComposedChart data={validCandlestickData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <LineChart 
+                data={simplifiedTradeData} 
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
-                <YAxis domain={['auto', 'auto']} />
+                <YAxis 
+                  domain={['auto', 'auto']}
+                  tickFormatter={(value) => `$${value.toFixed(2)}`}
+                />
                 <Tooltip 
-                  formatter={(value, name) => [parseFloat(value).toFixed(2), name]}
-                  labelFormatter={(value) => `Date: ${value}`}
+                  formatter={(value) => [`$${parseFloat(value).toFixed(2)}`, 'Price']}
                 />
                 <Legend />
-                <Bar 
-                  dataKey="volume" 
-                  fill="#8884d8" 
-                  opacity={0.3} 
-                  yAxisId="volume" 
-                  name="Volume" 
-                  barSize={20} 
+                <Line
+                  type="monotone"
+                  dataKey="price"
+                  stroke="#ff7300"
+                  name="Price"
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 8 }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="close" 
-                  stroke="#ff7300" 
-                  name="Close Price" 
-                  dot={{ r: 5 }} 
-                  activeDot={{ r: 8 }} 
+                <ReferenceLine
+                  y={parseFloat(stockData?.['05. price'] || 0)}
+                  stroke="red"
+                  strokeDasharray="3 3"
+                  label="Current"
                 />
-                <ReferenceLine 
-                  y={parseFloat(stockData?.['05. price'] || 0)} 
-                  stroke="red" 
-                  strokeDasharray="3 3" 
-                  label="Current" 
-                />
-              </ComposedChart>
+              </LineChart>
             </ResponsiveContainer>
           </div>
           
@@ -424,6 +417,17 @@ const StockChart = ({ stockData }) => {
       fill: entry.fill || '#8884d8'
     }));
 
+    // Calculate min and max for more granular scale
+    const minValue = Math.min(...validData.map(item => item.performance));
+    const maxValue = Math.max(...validData.map(item => item.performance));
+    
+    // Create a more granular domain by adding small padding
+    const padding = Math.max(0.1, (maxValue - minValue) * 0.2); // At least 0.1% padding or 20% of range
+    const yDomain = [
+      Math.min(minValue - padding, -0.1), // Ensure at least some negative space
+      Math.max(maxValue + padding, 0.1)   // Ensure at least some positive space
+    ];
+
     return (
       <div className="chart-container">
         <h3>Performance Comparison</h3>
@@ -436,10 +440,9 @@ const StockChart = ({ stockData }) => {
             <XAxis dataKey="name" />
             <YAxis 
               tickFormatter={(value) => `${value}%`}
-              domain={[
-                dataMin => Math.min(Math.floor(dataMin), -2),
-                dataMax => Math.max(Math.ceil(dataMax), 2)
-              ]}
+              domain={yDomain}
+              allowDecimals={true}
+              tickCount={10}
             />
             <Tooltip 
               formatter={(value) => [`${value}%`, 'Performance']}
