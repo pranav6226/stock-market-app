@@ -2,8 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   BarChart, Bar, LineChart, Line, ComposedChart, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
-  ResponsiveContainer, Cell, CandlestickChart, Candlestick,
-  ReferenceLine, Area, Scatter
+  ResponsiveContainer, Cell, ReferenceLine
 } from 'recharts';
 import { fetchHistoricalData, fetchStockData } from '../services/stockService';
 
@@ -173,14 +172,6 @@ const StockChart = ({ stockData }) => {
   const isStockUp = parseFloat(stockData?.['09. change'] || 0) >= 0;
   const mainColor = isStockUp ? '#4CAF50' : '#F44336';
 
-  // Chart type options
-  const chartTypes = [
-    { id: 'bar', label: 'Price Levels' },
-    { id: 'line', label: 'Price History' },
-    { id: 'volume', label: 'Volume Analysis' },
-    { id: 'comparison', label: 'Performance Comparison' }
-  ];
-
   // Function to generate price levels data - moved outside conditional rendering
   const generatePriceLevelsData = useCallback(() => {
     if (!stockData) return [];
@@ -261,148 +252,6 @@ const StockChart = ({ stockData }) => {
       </div>
     );
   }
-
-  // Render different chart based on selection
-  const renderSelectedChart = () => {
-    switch(chartType) {
-      case 'bar':
-        return (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis 
-                domain={[
-                  (dataMin) => Math.floor(dataMin * 0.995),
-                  (dataMax) => Math.ceil(dataMax * 1.005)
-                ]}
-                tickFormatter={(value) => `$${value.toFixed(2)}`}
-              />
-              <Tooltip 
-                formatter={(value) => [`$${value.toFixed(2)}`, 'Price']}
-              />
-              <Legend />
-              <Bar dataKey="price" fill={mainColor} />
-            </BarChart>
-          </ResponsiveContainer>
-        );
-      
-      case 'line':
-        return (
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={historicalData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis 
-                domain={['auto', 'auto']}
-                tickFormatter={(value) => `$${value.toFixed(2)}`}
-              />
-              <Tooltip 
-                formatter={(value) => [`$${value.toFixed(2)}`, 'Price']} 
-                labelFormatter={(label) => `Date: ${label}`}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="price" 
-                stroke={mainColor} 
-                strokeWidth={2}
-                dot={{ r: 0 }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        );
-      
-      case 'volume':
-        return (
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart
-              data={historicalData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis 
-                yAxisId="left"
-                orientation="left"
-                tickFormatter={(value) => `$${value.toFixed(2)}`}
-              />
-              <YAxis 
-                yAxisId="right"
-                orientation="right"
-                domain={['auto', 'auto']}
-                tickFormatter={(value) => `${(value/1000000).toFixed(1)}M`}
-              />
-              <Tooltip 
-                formatter={(value, name) => {
-                  return name === 'price' 
-                    ? [`$${value.toFixed(2)}`, 'Price'] 
-                    : [`${(value/1000000).toFixed(1)}M`, 'Volume'];
-                }}
-              />
-              <Legend />
-              <Line 
-                yAxisId="left"
-                type="monotone" 
-                dataKey="price" 
-                stroke={mainColor} 
-                strokeWidth={2}
-                dot={false}
-              />
-              <Bar 
-                yAxisId="right"
-                dataKey="volume" 
-                fill="#8884d8" 
-                opacity={0.5} 
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        );
-      
-      case 'comparison':
-        return (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={comparisonData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis 
-                tickFormatter={(value) => `${value}%`}
-                domain={[
-                  dataMin => Math.min(dataMin, -2),
-                  dataMax => Math.max(dataMax, 2)
-                ]}
-              />
-              <Tooltip 
-                formatter={(value) => [`${value}%`, 'Performance']}
-              />
-              <Legend />
-              <Bar dataKey="performance" fill="#8884d8">
-                {
-                  comparisonData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))
-                }
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        );
-      
-      default:
-        return (
-          <div>Please select a chart type</div>
-        );
-    }
-  };
 
   // Enhanced rendering of the price levels chart
   const renderPriceLevelsChart = () => {
