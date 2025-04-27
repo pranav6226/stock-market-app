@@ -106,22 +106,27 @@ main {
 
 /* Stock Chart styles with fix for overlapping */
 .stock-chart-container {
-  margin-bottom: 80px;
+  margin-bottom: 100px;
+  padding-bottom: 150px !important;
+  min-height: 800px;
   position: relative;
   z-index: 1;
 }
 
 .chart-container {
   margin-bottom: 50px;
-  padding-bottom: 20px;
+  padding-bottom: 100px;
+  min-height: 600px;
+  position: relative;
 }
 
 .price-levels-container {
   display: flex;
   flex-direction: column;
   gap: 30px;
-  margin-bottom: 50px;
-  padding-bottom: 30px;
+  margin-bottom: 80px;
+  padding-bottom: 60px;
+  position: relative;
 }
 
 /* Add clearfix to ensure container expands to contain all floating elements */
@@ -133,8 +138,25 @@ main {
 
 /* Make sure the price summary has adequate spacing */
 .price-summary {
-  margin-bottom: 50px;
-  padding-bottom: 30px;
+  margin-bottom: 70px;
+  padding-bottom: 80px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Add a white background extension that goes beyond the chart */
+.price-summary:after {
+  content: "";
+  display: block;
+  position: absolute;
+  bottom: -50px;
+  left: -20px;
+  right: -20px;
+  height: 100px;
+  background-color: white;
+  z-index: -1;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 
 .chart-controls {
@@ -217,7 +239,36 @@ button.active {
 
 /* Extra padding for chart cards */
 .stock-chart-container.card {
-  padding-bottom: 40px; /* Increase bottom padding */
+  padding-bottom: 100px;
+  overflow: visible;
+  position: relative;
+  margin-bottom: 100px;
+}
+
+/* Add a white background extension that stretches even further */
+.stock-chart-container.card:after {
+  content: "";
+  position: absolute;
+  bottom: -50px;
+  left: 0;
+  right: 0;
+  height: 150px;
+  background-color: white;
+  z-index: -1;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Target the price bar chart specifically */
+.price-summary .recharts-wrapper {
+  margin-bottom: 50px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure all chart elements are visible */
+.recharts-surface {
+  overflow: visible;
 }
 
 /* Specific styles for market news */
@@ -684,4 +735,21 @@ button.active {
   background-color: #f0f0f0;
   margin-top: 30px;
   margin-bottom: 20px;
+}
+
+/* Make backgrounds more reliable with explicit background style */
+.card, 
+.chart-container, 
+.price-levels-container,
+.price-summary,
+.today-price-summary {
+  background-color: white;
+}
+
+/* Remove any max-height constraints on chart containers */
+.recharts-wrapper,
+.recharts-container,
+.recharts-responsive-container {
+  max-height: none !important;
+  overflow: visible !important;
 } 
