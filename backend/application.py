@@ -18,6 +18,31 @@ CORS(application, resources={r"/api/*": {"origins": frontend_url}})
 current_prices = {
     'AAPL': 169.00,   # Apple
     'MSFT': 425.22,   # Microsoft
+import logging
+from werkzeug.exceptions import HTTPException
+
+# Setup logger
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logger = logging.getLogger(__name__)
+
+# Flask error handler for HTTP exceptions
+@application.errorhandler(HTTPException)
+def handle_http_exception(e):
+    logger.error(f"HTTP Exception: {e.description}")
+    response = e.get_response()
+    response.data = json.dumps({"error": e.description})
+    response.content_type = "application/json"
+    return response
+
+# Flask error handler for non-HTTP exceptions
+@application.errorhandler(Exception)
+def handle_exception(e):
+    logger.error(f"Unhandled Exception: {str(e)}", exc_info=True)
+    response = jsonify({"error": "An unexpected error occurred. Please try again later."})
+    response.status_code = 500
+    return response
+
+
     'GOOG': 173.69,   # Google
     'GOOGL': 172.37,  # Google class A
     'AMZN': 182.41,   # Amazon
