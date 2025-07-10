@@ -9,6 +9,21 @@ from flask_cors import CORS
 
 application = Flask(__name__)
 
+import jwt
+import datetime
+from flask import request
+
+# Secret key for JWT encoding/decoding
+JWT_SECRET = 'your_secret_key_here'
+JWT_ALGORITHM = 'HS256'
+
+# Dummy user data (replace with real user DB)
+users = {
+    'user@example.com': {'password': 'password123', 'name': 'John Doe'}
+}
+
+
+
 # Initialize CORS
 # Use FRONTEND_URL environment variable for allowed origin, default to '*' if not set
 frontend_url = os.environ.get('FRONTEND_URL', '*') 
