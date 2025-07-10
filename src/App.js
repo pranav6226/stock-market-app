@@ -43,6 +43,8 @@ function Dashboard({ API_URLS, onStockDataChange }) {
   useEffect(() => {
     // Prevent fetching if data is already loaded (unless search query changes)
     if (dataLoaded && searchQuery === stockData['01. symbol']) {
+import LogoutButton from './LogoutButton';
+
       return;
     }
     
@@ -105,6 +107,7 @@ function Dashboard({ API_URLS, onStockDataChange }) {
           <Link to="/">Home</Link>
           <Link to="/compare">Compare Stocks</Link>
           <Link to="/watchlist">Watchlist</Link>
+          <LogoutButton />
         </div>
       </header>
 

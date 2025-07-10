@@ -48,6 +48,8 @@ current_prices = {
     'TMO': 575.58,    # Thermo Fisher
 }
 
+from flask import session
+
 # Add route for root path for testing
 @application.route('/', methods=['GET'])
 def index():
@@ -142,6 +144,10 @@ def get_stock_data():
                     response_data = {
                         "01. symbol": symbol,
                         "02. open": float(open_price),
+from flask import session
+from flask import redirect
+from flask import url_for
+
                         "03. high": float(high_price),
                         "04. low": float(low_price),
                         "05. price": float(current_price),
