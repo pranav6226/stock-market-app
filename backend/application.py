@@ -56,21 +56,13 @@ def index():
 
 @application.route('/api/stock', methods=['GET', 'OPTIONS'])
 def get_stock_data():
-    # Print debugging info
     print(f"Received request for: {request.url}")
     print(f"Method: {request.method}")
-    
     try:
-        # Get the stock symbol from the query parameters
-        symbol = request.args.get('symbol', 'AAPL').upper()  # Default to AAPL if not provided
+        symbol = request.args.get('symbol', 'AAPL').upper()
         print(f"Looking up symbol: {symbol}")
-        
-        # Direct HTTP request to Yahoo Finance API
         try:
-            # Yahoo Finance API URL
             url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
-            
-            # Add parameters for data we want
             params = {
                 "region": "US",
                 "lang": "en-US",
@@ -80,65 +72,28 @@ def get_stock_data():
                 "corsDomain": "finance.yahoo.com",
                 ".tsrc": "finance"
             }
-            
-            # Make the request with proper headers
             headers = {
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)"
             }
-            
             print(f"Requesting data from Yahoo Finance for {symbol}")
             response = requests.get(url, params=params, headers=headers, timeout=5)
-            
-            # Check if the request was successful
             if response.status_code == 200:
                 data = response.json()
-                
-                # Check if we have valid data
                 if data and 'chart' in data and 'result' in data['chart'] and data['chart']['result']:
                     result = data['chart']['result'][0]
                     quote = result['indicators']['quote'][0]
-                    
-                    # Get meta data
                     meta = result['meta']
-                    timestamp = result['timestamp'][-1]  # Latest timestamp
-                    
-                    # Get price data
+                    timestamp = result['timestamp'][-1]
                     current_price = meta.get('regularMarketPrice', 0)
                     previous_close = meta.get('previousClose', current_price * 0.99)
-                    
-                    # Get data from quotes
-                    if 'close' in quote and quote['close'] and quote['close'][-1] is not None:
-                        close_price = quote['close'][-1]
-                    else:
-                        close_price = current_price
-                        
-                    if 'open' in quote and quote['open'] and quote['open'][-1] is not None:
-                        open_price = quote['open'][-1]
-                    else:
-                        open_price = previous_close
-                        
-                    if 'high' in quote and quote['high'] and quote['high'][-1] is not None:
-                        high_price = quote['high'][-1]
-                    else:
-                        high_price = max(current_price, open_price) * 1.01
-                        
-                    if 'low' in quote and quote['low'] and quote['low'][-1] is not None:
-                        low_price = quote['low'][-1]
-                    else:
-                        low_price = min(current_price, open_price) * 0.99
-                        
-                    if 'volume' in quote and quote['volume'] and quote['volume'][-1] is not None:
-                        volume = quote['volume'][-1]
-                    else:
-                        volume = 1000000
-                    
-                    # Calculate change
+                    close_price = quote['close'][-1] if 'close' in quote and quote['close'] and quote['close'][-1] is not None else current_price
+                    open_price = quote['open'][-1] if 'open' in quote and quote['open'] and quote['open'][-1] is not None else previous_close
+                    high_price = quote['high'][-1] if 'high' in quote and quote['high'] and quote['high'][-1] is not None else max(current_price, open_price) * 1.01
+                    low_price = quote['low'][-1] if 'low' in quote and quote['low'] and quote['low'][-1] is not None else min(current_price, open_price) * 0.99
+                    volume = quote['volume'][-1] if 'volume' in quote and quote['volume'] and quote['volume'][-1] is not None else 1000000
                     change = current_price - previous_close
                     change_percent = (change / previous_close) * 100 if previous_close > 0 else 0
-                    
-                    # Format trading day
                     trading_day = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
-                    
                     response_data = {
                         "01. symbol": symbol,
                         "02. open": float(open_price),
@@ -151,30 +106,39 @@ def get_stock_data():
                         "09. change": float(change),
                         "10. change percent": f"{change_percent:.2f}%"
                     }
-                    
                     print(f"SUCCESS: Live data from Yahoo Finance for {symbol}: ${current_price}")
-                    api_response = jsonify(response_data)
-                    
-                    return api_response
+                    return jsonify(response_data)
                 else:
-                    print(f"Invalid data format received for {symbol}")
+                    error_msg = f"Invalid data format received for symbol: {symbol}"
+                    print(error_msg)
+                    return jsonify({"error": error_msg}), 502
             else:
-                print(f"Failed to get data: {response.status_code}")
-                
-        except Exception as request_err:
-            print(f"Error fetching data for {symbol}: {str(request_err)}")
-        
-        # Fall back to mock data as last resort
+                error_msg = f"Failed to get data from Yahoo Finance: HTTP {response.status_code}"
+                print(error_msg)
+                return jsonify({"error": error_msg}), 502
+        except requests.RequestException as req_err:
+            error_msg = f"Request error fetching data for {symbol}: {str(req_err)}"
+            print(error_msg)
+            return jsonify({"error": error_msg}), 504
+        except Exception as ex:
+            error_msg = f"Unexpected error fetching data for {symbol}: {str(ex)}"
+            print(error_msg)
+            return jsonify({"error": error_msg}), 500
+    except Exception as e:
+        error_msg = f"General error processing request: {str(e)}"
+        print(error_msg)
+        print(traceback.format_exc())
+        return jsonify({"error": error_msg}), 500
+    
+    # Fallback to mock if all else fails
+    try:
         print(f"FALLBACK: Using mock data for {symbol}")
         return get_mock_stock_data(symbol)
-        
-    except Exception as e:
-        print(f"GENERAL ERROR: {str(e)}")
-        print(traceback.format_exc())
-        api_response = jsonify({"error": str(e)})
-        api_response.status_code = 500
-        
-        return api_response
+    except Exception as fallback_err:
+        fallback_msg = f"Error generating fallback data: {str(fallback_err)}"
+        print(fallback_msg)
+        return jsonify({"error": fallback_msg}), 500
+
 
 def get_mock_stock_data(symbol):
     print(f"Generating realistic mock data for {symbol}")
