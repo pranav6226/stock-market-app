@@ -1,5 +1,7 @@
 {
   "name": "stock-market-app",
+  "description": "A modern stock market application with real-time data and interactive charts",
+  "keywords": ["stock", "market", "finance", "trading", "react", "javascript"],
   "version": "0.1.0",
   "private": true,
   "proxy": "http://localhost:5001",

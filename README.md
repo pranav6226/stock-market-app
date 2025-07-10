@@ -1,6 +1,23 @@
+```markdown
 # Stock Market App
 
-A React application with Python Flask backend to search and display stock market data using Yahoo Finance.
+A React application with a Python Flask backend to search and display stock market data using Yahoo Finance.
+
+## Table of Contents
+
+- [Features](#features)
+- [Technologies Used](#technologies-used)
+- [Local Development Setup](#local-development-setup)
+  - [Prerequisites](#prerequisites)
+  - [Installation & Running](#installation--running)
+    - [Backend Setup](#backend-setup)
+    - [Frontend Setup](#frontend-setup)
+- [Deployment](#deployment)
+  - [Configuration Files](#configuration-files)
+  - [Environment Variables](#environment-variables)
+- [Usage](#usage)
+- [Note](#note)
+- [License](#license)
 
 ## Features
 
@@ -23,85 +40,93 @@ A React application with Python Flask backend to search and display stock market
 
 ### Prerequisites
 
-- Node.js (v16 or later) and npm installed
-- Python 3.7+ installed
+Before you begin, ensure you have the following installed:
+
+- Node.js (v16 or later) and npm
+- Python 3.7 or later
 - pip (Python package manager)
 
 ### Installation & Running
 
-**1. Backend Setup:**
+#### 1. Backend Setup
 
-   - Navigate to the backend directory:
-     ```bash
-     cd backend
-     ```
-   - Create and activate a virtual environment (recommended):
-     ```bash
-     python3 -m venv venv
-     # On macOS/Linux:
-     source venv/bin/activate
-     # On Windows:
-     # venv\Scripts\activate
-     ```
-   - Install Python dependencies:
-     ```bash
-     pip install -r requirements.txt
-     ```
-   - Run the Flask server using Gunicorn (simulates production environment):
-     ```bash
-     gunicorn --bind 127.0.0.1:5001 application:application --reload
-     ```
-     *(Note: We use port 5001 locally to avoid conflicts with macOS AirPlay on port 5000. The `--reload` flag automatically restarts the server on code changes.)*
-     The backend API will be available at `http://127.0.0.1:5001`.
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
 
-**2. Frontend Setup:**
+2. Create and activate a virtual environment (recommended):
+   ```bash
+   python3 -m venv venv
+   # On macOS/Linux:
+   source venv/bin/activate
+   # On Windows:
+   # venv\Scripts\activate
+   ```
 
-   - Open a **new terminal** and navigate to the project root directory (the one containing `package.json`):
-     ```bash
-     cd .. 
-     ```
-     *(If you are still in the backend directory)*
-   - Install Node.js dependencies:
-     ```bash
-     npm install
-     ```
-   - Start the React development server:
-     ```bash
-     npm start
-     ```
-     The React app will automatically open in your browser at `http://localhost:3000`.
+3. Install Python dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Run the Flask server using Gunicorn:
+   ```bash
+   gunicorn --bind 127.0.0.1:5001 application:application --reload
+   ```
+   *(Note: The backend API will be available at `http://127.0.0.1:5001`.)*
+
+#### 2. Frontend Setup
+
+1. Open a **new terminal** and navigate to the project root directory (the one containing `package.json`):
+   ```bash
+   cd ..
+   ```
+
+2. Install Node.js dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the React development server:
+   ```bash
+   npm start
+   ```
+   *(The React app will automatically open in your browser at `http://localhost:3000`.)*
 
 ## Deployment
 
 This application is configured for deployment with:
+
 - **Frontend:** Netlify
 - **Backend:** Render
 
-**Configuration Files:**
+### Configuration Files
 
-- `netlify.toml`: Configures the frontend build (`npm run build`) and publish directory (`build`). Includes a redirect rule for client-side routing.
-- `render.yaml`: Configures the backend service using Render's Blueprint spec. It specifies the Python runtime, `backend` directory, build command (`pip install -r requirements.txt`), and start command (`gunicorn --bind :$PORT application:application`).
+- **`netlify.toml`**: Configures the frontend build (`npm run build`) and publish directory (`build`). Includes a redirect rule for client-side routing.
+- **`render.yaml`**: Configures the backend service using Render's Blueprint spec. It specifies the Python runtime, `backend` directory, build command (`pip install -r requirements.txt`), and start command (`gunicorn --bind :$PORT application:application`).
 
-**Environment Variables:**
+### Environment Variables
 
 Ensure the following environment variables are set in your deployment platforms:
 
 - **Netlify:**
-    - `REACT_APP_API_URL`: Set this to the URL of your deployed Render backend service (e.g., `https://your-backend-service.onrender.com`).
+  - `REACT_APP_API_URL`: Set this to the URL of your deployed Render backend service (e.g., `https://your-backend-service.onrender.com`).
+
 - **Render:**
-    - `PYTHON_VERSION`: (Optional) Specify the desired Python version (e.g., `3.9`, `3.10`).
-    - `FRONTEND_URL`: Set this to the URL of your deployed Netlify frontend (e.g., `https://your-netlify-app.netlify.app`). This is crucial for CORS configuration.
+  - `PYTHON_VERSION`: (Optional) Specify the desired Python version (e.g., `3.9`, `3.10`).
+  - `FRONTEND_URL`: Set this to the URL of your deployed Netlify frontend (e.g., `https://your-netlify-app.netlify.app`). This is crucial for CORS configuration.
 
 ## Usage
 
-1. For local development, ensure both the backend (Gunicorn) and frontend (`npm start`) are running.
+1. Ensure both the backend (Gunicorn) and frontend (`npm start`) are running.
 2. Access the application via the frontend URL (`http://localhost:3000` locally, or your Netlify URL when deployed).
-3. Search for stock symbols, view data, charts, news, and use other features.
+3. Use the search bar to enter stock symbols, view data, charts, news, and explore other features.
+
+### Example Usage
+
+- To search for Apple Inc. stock, enter `AAPL` in the search bar.
+- Click on the stock to view detailed information, including price changes and market news.
 
 ## Note
 
-The backend fetches data from Yahoo Finance. This is for educational and personal use only. Please review Yahoo's terms of service for any production use.
-
-## License
-
-MIT 
+The backend fetches data from Yahoo Finance. This application
