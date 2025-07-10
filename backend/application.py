@@ -5,6 +5,7 @@ import requests
 import json
 import random
 import os
+import logging
 from flask_cors import CORS
 
 application = Flask(__name__)
@@ -13,6 +14,9 @@ application = Flask(__name__)
 # Use FRONTEND_URL environment variable for allowed origin, default to '*' if not set
 frontend_url = os.environ.get('FRONTEND_URL', '*') 
 CORS(application, resources={r"/api/*": {"origins": frontend_url}})
+
+# Configure basic logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
 # Current realistic prices for common stocks (as of April 2024)
 current_prices = {
@@ -774,8 +778,37 @@ def generate_mock_company_data(symbol, current_price):
     print(f"Generated mock company data for {symbol}")
     return jsonify(company_data)
 
+
+# Error handler to catch all unhandled exceptions and return JSON response
+@application.errorhandler(Exception)
+def handle_exception(e):
+    logging.error(f"Unhandled Exception: {e}", exc_info=True)
+    response = {
+        "error": "An unexpected error occurred. Please try again later."
+    }
+    return make_response(jsonify(response), 500)
+
+
+# Example API endpoint demonstrating error handling
+@application.route('/api/company/<symbol>', methods=['GET'])
+def get_company_info(symbol):
+    try:
+        # Validate symbol input
+        symbol = symbol.upper()
+        if symbol not in current_prices:
+            return make_response(jsonify({"error": "Stock symbol not supported."}), 400)
+
+        # Generate mock company data
+        company_data = generate_company_info(symbol)
+
+        return jsonify(company_data)
+    except Exception as e:
+        logging.error(f"Error in get_company_info for symbol {symbol}: {e}", exc_info=True)
+        return make_response(jsonify({"error": "Failed to fetch company info."}), 500)
+
+
 if __name__ == '__main__':
     # Using port 5001 instead of 5000 to avoid conflict with AirPlay on macOS
     print("Starting Flask server on 0.0.0.0:5001...")
     print("Press Ctrl+C to quit")
-    application.run(debug=True, host='0.0.0.0', port=5001, threaded=True) 
+    application.run(debug=True, host='0.0.0.0', port=5001, threaded=True)  
