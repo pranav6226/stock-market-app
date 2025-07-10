@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, make_response
+from flask import Flask, jsonify, request, make_response, abort
 import traceback
 import datetime
 import requests
@@ -39,6 +39,17 @@ current_prices = {
     'NFLX': 636.69,   # Netflix
     'PFE': 26.66,     # Pfizer
     'INTC': 31.21,    # Intel
+# Add basic error handling for 404 and 500 errors
+from flask import abort
+
+@application.errorhandler(404)
+def not_found_error(error):
+    return jsonify({'error': 'Not found'}), 404
+
+@application.errorhandler(500)
+def internal_error(error):
+    return jsonify({'error': 'Internal server error'}), 500
+
     'KO': 60.37,      # Coca-Cola
     'PEP': 172.40,    # PepsiCo
     'COST': 729.36,   # Costco
