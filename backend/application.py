@@ -38,6 +38,44 @@ current_prices = {
     'CSCO': 48.04,    # Cisco
     'NFLX': 636.69,   # Netflix
     'PFE': 26.66,     # Pfizer
+
+from flask import abort
+import logging
+
+# Configure logging
+logging.basicConfig(filename='backend_error.log', level=logging.ERROR,
+                    format='%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]')
+
+# Global error handlers
+@application.errorhandler(400)
+def bad_request(error):
+    return jsonify({'error': 'Bad Request', 'message': str(error)}), 400
+
+@application.errorhandler(404)
+def not_found(error):
+    return jsonify({'error': 'Not Found', 'message': str(error)}), 404
+
+@application.errorhandler(405)
+def method_not_allowed(error):
+    return jsonify({'error': 'Method Not Allowed', 'message': str(error)}), 405
+
+@application.errorhandler(500)
+def internal_error(error):
+    application.logger.error(f'Internal Server Error: {error}')
+    return jsonify({'error': 'Internal Server Error', 'message': 'An unexpected error occurred.'}), 500
+
+
+# Helper function for input validation
+import re
+
+def validate_symbol(symbol):
+    if not symbol:
+        return False
+    if not re.match(r'^[A-Za-z0-9\-\.]{1,10}$', symbol):
+        return False
+    return True
+
+
     'INTC': 31.21,    # Intel
     'KO': 60.37,      # Coca-Cola
     'PEP': 172.40,    # PepsiCo
