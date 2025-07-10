@@ -146,6 +146,10 @@ function Dashboard({ API_URLS, onStockDataChange }) {
   );
 }
 
+// Import the LoginForm component for user authentication
+import LoginForm from './components/LoginForm';
+
+// Main application component handles routing and global state
 function App() {
   const [stockData, setStockData] = useState({});
   
@@ -171,6 +175,8 @@ function App() {
   return (
     <Router>
       <div className="App">
+        {/* Render the login form component */}
+        <LoginForm />
         <Routes>
           <Route path="/" element={<LandingPage onEnterApp={handleEnterApp} />} />
           <Route path="/dashboard" element={<Dashboard API_URLS={API_URLS} onStockDataChange={setStockData} />} />
