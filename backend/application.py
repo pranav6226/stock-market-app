@@ -18,6 +18,9 @@ CORS(application, resources={r"/api/*": {"origins": frontend_url}})
 current_prices = {
     'AAPL': 169.00,   # Apple
     'MSFT': 425.22,   # Microsoft
+from flask_bcrypt import Bcrypt
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+
     'GOOG': 173.69,   # Google
     'GOOGL': 172.37,  # Google class A
     'AMZN': 182.41,   # Amazon
@@ -39,6 +42,17 @@ current_prices = {
     'NFLX': 636.69,   # Netflix
     'PFE': 26.66,     # Pfizer
     'INTC': 31.21,    # Intel
+bcrypt = Bcrypt(application)
+jwt = JWTManager(application)
+
+# Secret key for JWT (insecure value, replace with env var in production)
+application.config['JWT_SECRET_KEY'] = 'super-secret-key'
+
+users = {}
+
+# User storage for simplicity, replace with DB in production
+# Structure: users[username] = {'password_hash': ..., 'other_data': ...}
+
     'KO': 60.37,      # Coca-Cola
     'PEP': 172.40,    # PepsiCo
     'COST': 729.36,   # Costco
@@ -64,6 +78,62 @@ def get_stock_data():
         # Get the stock symbol from the query parameters
         symbol = request.args.get('symbol', 'AAPL').upper()  # Default to AAPL if not provided
         print(f"Looking up symbol: {symbol}")
+@application.route('/api/register', methods=['POST'])
+def register():
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({'error': 'Missing username or password'}), 400
+        
+        if username in users:
+            return jsonify({'error': 'User already exists'}), 409
+        
+        password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+        users[username] = {'password_hash': password_hash}
+        return jsonify({'message': 'User registered successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@application.route('/api/login', methods=['POST'])
+def login():
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({'error': 'Missing username or password'}), 400
+        
+        user = users.get(username)
+        if not user:
+            return jsonify({'error': 'Invalid username or password'}), 401
+        
+        if not bcrypt.check_password_hash(user['password_hash'], password):
+            return jsonify({'error': 'Invalid username or password'}), 401
+        
+        access_token = create_access_token(identity=username)
+        return jsonify({'access_token': access_token})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@application.route('/api/profile', methods=['GET'])
+@jwt_required()
+def profile():
+    try:
+        username = get_jwt_identity()
+        user = users.get(username)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        return jsonify({'username': username})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
         
         # Direct HTTP request to Yahoo Finance API
         try:
