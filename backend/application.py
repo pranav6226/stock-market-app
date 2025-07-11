@@ -56,6 +56,14 @@ def index():
 
 @application.route('/api/stock', methods=['GET', 'OPTIONS'])
 def get_stock_data():
+    # Input validation for 'symbol' parameter
+    symbol = request.args.get('symbol', '').upper()
+    if not symbol or not symbol.isalpha() or len(symbol) > 5:
+        return jsonify({'error': 'Invalid symbol parameter'}), 400
+    
+    # Print debugging info
+    print(f"Received request for: {request.url}")
+    print(f"Method: {request.method}")
     # Print debugging info
     print(f"Received request for: {request.url}")
     print(f"Method: {request.method}")
