@@ -1,0 +1,23 @@
+.toggle-button-on {
+  background-color: #4caf50;
+  color: white;
+  cursor: pointer;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+.toggle-button-off {
+  background-color: #f44336;
+  color: white;
+  cursor: pointer;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+.toggle-button-on:hover, .toggle-button-off:hover {
+  opacity: 0.8;
+}

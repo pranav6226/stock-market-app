@@ -40,6 +40,8 @@ function Dashboard({ API_URLS, onStockDataChange }) {
     setDataLoaded(true); // Mark data as loaded after successful fetch
   }, [onStockDataChange]); // Dependency: onStockDataChange
 
+import ToggleButton from './components/ToggleButton';
+
   useEffect(() => {
     // Prevent fetching if data is already loaded (unless search query changes)
     if (dataLoaded && searchQuery === stockData['01. symbol']) {
@@ -83,6 +85,9 @@ function Dashboard({ API_URLS, onStockDataChange }) {
       
       setLoading(false);
     };
+              <ToggleButton initial={false} onToggle={(state) => console.log('Toggle is now', state)} />
+      }
+
 
     fetchStockData();
   }, [searchQuery, API_URLS, onStockDataChange, dataLoaded, stockData, updateStockData]);
@@ -122,6 +127,7 @@ function Dashboard({ API_URLS, onStockDataChange }) {
               <button onClick={handleCompareStocks} className="compare-button">
                 Compare with Other Stocks
               </button>
+              <ToggleButton initial={false} onToggle={(state) => console.log('Toggle is now', state)} />
             </>
           )}
         </div>
