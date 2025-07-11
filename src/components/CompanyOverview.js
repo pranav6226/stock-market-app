@@ -1,5 +1,6 @@
 import React from 'react';
-import { Card, Descriptions, Spin, Empty } from 'antd';
+import { Card, Descriptions, Empty } from 'antd';
+import Spinner from './Spinner';
 import { formatLargeNumber, formatCurrency, formatPercentage } from '../utils/formatters';
 
 const CompanyOverview = ({ companyData, loading, error }) => {
@@ -7,7 +8,7 @@ const CompanyOverview = ({ companyData, loading, error }) => {
     return (
       <Card title="Company Overview" className="company-overview-card">
         <div className="loading-container">
-          <Spin size="large" />
+          <Spinner size="large" tip="Loading company overview..." />
         </div>
       </Card>
     );
