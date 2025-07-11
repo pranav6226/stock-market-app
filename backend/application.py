@@ -242,6 +242,40 @@ def get_mock_stock_data(symbol):
     response = jsonify(data)
     return response
 
+@application.route('/api/search', methods=['GET', 'OPTIONS'])
+def search_stocks():
+    try:
+        query = request.args.get('query', '').upper()
+        print(f"Search query received: {query}")
+        
+        # For demo purpose, return a mock list of companies matching query pattern
+        if not query:
+            return jsonify({'results': []})
+        
+        # Sample static data that might come from a database or API
+        companies = [
+            {'symbol': 'AAPL', 'name': 'Apple Inc.', 'exchange': 'NASDAQ'},
+            {'symbol': 'MSFT', 'name': 'Microsoft Corporation', 'exchange': 'NASDAQ'},
+            {'symbol': 'GOOG', 'name': 'Alphabet Inc.', 'exchange': 'NASDAQ'},
+            {'symbol': 'AMZN', 'name': 'Amazon.com, Inc.', 'exchange': 'NASDAQ'},
+            {'symbol': 'TSLA', 'name': 'Tesla, Inc.', 'exchange': 'NASDAQ'},
+            {'symbol': 'META', 'name': 'Meta Platforms, Inc.', 'exchange': 'NASDAQ'},
+            {'symbol': 'BRK-B', 'name': 'Berkshire Hathaway Inc. Class B', 'exchange': 'NYSE'},
+            {'symbol': 'JPM', 'name': 'JPMorgan Chase & Co.', 'exchange': 'NYSE'},
+            {'symbol': 'V', 'name': 'Visa Inc.', 'exchange': 'NYSE'},
+            {'symbol': 'JNJ', 'name': 'Johnson & Johnson', 'exchange': 'NYSE'},
+            {'symbol': 'WMT', 'name': 'Walmart Inc.', 'exchange': 'NYSE'},
+            {'symbol': 'PG', 'name': 'Procter & Gamble Company', 'exchange': 'NYSE'}
+        ]
+        
+        # Filter by query (symbol or name contains query substring, case insensitive)
+        filtered = [c for c in companies if query in c['symbol'].upper() or query in c['name'].upper()]
+        
+        return jsonify({'results': filtered})
+    except Exception as e:
+        print(f"Error in search_stocks: {e}")
+        return jsonify({'results': [], 'error': str(e)})
+
 @application.route('/api/stock/history', methods=['GET', 'OPTIONS'])
 def get_stock_history():
     # Print debugging info

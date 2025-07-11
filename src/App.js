@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import FilterPanel from './components/FilterPanel';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 import StockList from './components/StockList';
+import Dashboard from './components/Dashboard';
 import StockChart from './components/StockChart';
 import SearchBar from './components/SearchBar';
 import TechnicalAnalysis from './components/TechnicalAnalysis';
 import MarketNews from './components/MarketNews';
 import StockComparison from './components/StockComparison';
+import SearchResults from './components/SearchResults';
 import Watchlist from './components/Watchlist';
 import LandingPage from './components/LandingPage';
 
@@ -22,6 +25,7 @@ function Dashboard({ API_URLS, onStockDataChange }) {
   const navigate = useNavigate();
   
   // Read query parameters for symbol
+import FilterPanel from './components/FilterPanel';
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const symbol = params.get('symbol');
@@ -46,6 +50,7 @@ function Dashboard({ API_URLS, onStockDataChange }) {
       return;
     }
     
+  const [searchResults, setSearchResults] = useState([]);
     const fetchStockData = async () => {
       if (!searchQuery) return;
       
@@ -67,9 +72,14 @@ function Dashboard({ API_URLS, onStockDataChange }) {
             updateStockData(response.data);
             setApiUrlIndex(i); // Remember which URL worked
             setLoading(false);
+            // Clear previous search results on valid stock data fetch
+            setSearchResults([]);
             return; // Exit the loop if successful
           } else {
             setError(response.data.error || 'No data found for this stock symbol');
+          {!loading && !error && searchResults.length > 0 && (
+            <SearchResults results={searchResults} />
+          )}
           }
         } catch (err) {
           console.error(`Error with URL ${API_URLS[i]}:`, err);
@@ -87,9 +97,21 @@ function Dashboard({ API_URLS, onStockDataChange }) {
     fetchStockData();
   }, [searchQuery, API_URLS, onStockDataChange, dataLoaded, stockData, updateStockData]);
 
-  const handleSearch = (query) => {
+  const handleSearch = async (query) => {
     setSearchQuery(query);
     setDataLoaded(false); // Reset data loaded flag when manually searching
+    setLoading(true);
+    setError(null);
+    try {
+      // Assuming a backend API endpoint to search stocks, e.g. /api/search?query=...
+      const response = await axios.get(`${API_URLS[0].replace('/stock', '/search')}?query=${query}`);
+      setSearchResults(response.data.results || []);
+    } catch (err) {
+      setError('Error fetching search results.');
+      setSearchResults([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCompareStocks = () => {
@@ -123,6 +145,9 @@ function Dashboard({ API_URLS, onStockDataChange }) {
                 Compare with Other Stocks
               </button>
             </>
+          )}
+          {!loading && !error && searchResults.length > 0 && (
+            <SearchResults results={searchResults} />
           )}
         </div>
         
