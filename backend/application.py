@@ -1,4 +1,8 @@
 from flask import Flask, jsonify, request, make_response
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from werkzeug.security import generate_password_hash, check_password_hash
+
+
 import traceback
 import datetime
 import requests
@@ -16,7 +20,7 @@ CORS(application, resources={r"/api/*": {"origins": frontend_url}})
 
 # Current realistic prices for common stocks (as of April 2024)
 current_prices = {
-    'AAPL': 169.00,   # Apple
+    'AAPL': 169.00,   # Apple,
     'MSFT': 425.22,   # Microsoft
     'GOOG': 173.69,   # Google
     'GOOGL': 172.37,  # Google class A
@@ -47,6 +51,52 @@ current_prices = {
     'MRK': 126.90,    # Merck
     'TMO': 575.58,    # Thermo Fisher
 }
+
+# Setup JWT
+application.config["JWT_SECRET_KEY"] = "super-secret-key"  # Change this to a secure secret in production
+jwt = JWTManager(application)
+
+# In-memory user "database" (replace with real database in production)
+users = {}
+
+# User registration endpoint
+@application.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify({'msg': 'Username and password required'}), 400
+
+    if username in users:
+        return jsonify({'msg': 'Username already exists'}), 409
+
+    # Hash password before storing
+    hashed_password = generate_password_hash(password)
+    users[username] = hashed_password
+
+    return jsonify({'msg': 'User registered successfully'}), 201
+
+# User login endpoint
+@application.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify({'msg': 'Username and password required'}), 400
+
+    user_password_hash = users.get(username, None)
+    if not user_password_hash or not check_password_hash(user_password_hash, password):
+        return jsonify({'msg': 'Bad username or password'}), 401
+
+    # Create access token
+    access_token = create_access_token(identity=username)
+
+    return jsonify(access_token=access_token), 200
+
 
 # Add route for root path for testing
 @application.route('/', methods=['GET'])
