@@ -10,6 +10,8 @@ import MarketNews from './components/MarketNews';
 import StockComparison from './components/StockComparison';
 import Watchlist from './components/Watchlist';
 import LandingPage from './components/LandingPage';
+import UserProfile from './components/UserProfile';
+
 
 // Dashboard component
 function Dashboard({ API_URLS, onStockDataChange }) {
@@ -40,8 +42,8 @@ function Dashboard({ API_URLS, onStockDataChange }) {
     setDataLoaded(true); // Mark data as loaded after successful fetch
   }, [onStockDataChange]); // Dependency: onStockDataChange
 
+  // Prevent fetching if data is already loaded (unless search query changes)
   useEffect(() => {
-    // Prevent fetching if data is already loaded (unless search query changes)
     if (dataLoaded && searchQuery === stockData['01. symbol']) {
       return;
     }
@@ -66,6 +68,7 @@ function Dashboard({ API_URLS, onStockDataChange }) {
           if (response.data && !response.data.error) {
             updateStockData(response.data);
             setApiUrlIndex(i); // Remember which URL worked
+
             setLoading(false);
             return; // Exit the loop if successful
           } else {
@@ -94,6 +97,7 @@ function Dashboard({ API_URLS, onStockDataChange }) {
 
   const handleCompareStocks = () => {
     navigate('/compare');
+          <Route path="/profile" element={<UserProfile />} />
   };
 
   return (
