@@ -235,6 +235,27 @@ def get_mock_stock_data(symbol):
         "07. latest trading day": datetime.datetime.now().strftime('%Y-%m-%d'),
         "08. previous close": round(previous_close, 2),
         "09. change": round(change, 2),
+@application.route('/api/watchlist/search', methods=['GET'])
+def search_watchlist():
+    """API endpoint to search/filter watchlist tickers by query string parameter 'q'"""
+    try:
+        query = request.args.get('q', '').upper()
+        print(f"Search query received: '{query}'")
+        # For demonstration, using a mock watchlist. Replace this with DB or other storage lookup.
+        # Note: In a real app, watchlist should be fetched from DB or persistent storage.
+        mock_watchlist = ['AAPL', 'MSFT', 'GOOG', 'AMZN', 'TSLA', 'META', 'NVDA', 'JPM', 'V', 'JNJ']
+        if query:
+            filtered = [ticker for ticker in mock_watchlist if query in ticker]
+        else:
+            filtered = mock_watchlist
+        print(f"Filtered results: {filtered}")
+        return jsonify({"tickers": filtered})
+    except Exception as e:
+        print(f"Error in search_watchlist API: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+
         "10. change percent": f"{change_percent:.2f}%"
     }
     

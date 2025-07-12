@@ -13,6 +13,7 @@ function App() {
   const [error, setError] = useState(null);
   const [ticker, setTicker] = useState('AAPL');
   const [watchlist, setWatchlist] = useState([]);
+  const [filteredWatchlist, setFilteredWatchlist] = useState([]);
   const [period, setPeriod] = useState('1mo'); // Default period: 1 month
 
   // API endpoint (would be replaced with actual API Gateway URL)
@@ -54,6 +55,7 @@ function App() {
       });
       
       setWatchlist([...watchlist, ticker]);
+      setFilteredWatchlist(prev => [...prev, ticker]); // keep filtered list updated
     } catch (err) {
       console.error('Error adding to watchlist:', err);
     }
@@ -63,14 +65,36 @@ function App() {
     try {
       const response = await axios.get(`${API_URL}/watchlist`);
       setWatchlist(response.data.tickers || []);
+      setFilteredWatchlist(response.data.tickers || []);
     } catch (err) {
       console.error('Error fetching watchlist:', err);
     }
   };
 
+  const searchWatchlist = async (query) => {
+    try {
+      const response = await axios.get(`${API_URL}/watchlist/search`, {
+        params: { q: query }
+      });
+      setFilteredWatchlist(response.data.tickers || []);
+    } catch (err) {
+      console.error('Error searching watchlist:', err);
+    }
+  };
+
+  const [watchlistSearch, setWatchlistSearch] = useState('');
+
   useEffect(() => {
     getWatchlist();
   }, []);
+
+  useEffect(() => {
+    if (watchlistSearch === '') {
+      setFilteredWatchlist(watchlist);
+    } else {
+      searchWatchlist(watchlistSearch);
+    }
+  }, [watchlistSearch]);
 
   const renderChart = () => {
     if (loading) return <div className="loading">Loading...</div>;
@@ -140,20 +164,28 @@ function App() {
       
       <div className="watchlist-container">
         <h2>Watchlist</h2>
-        {watchlist.length === 0 ? (
-          <p>Your watchlist is empty</p>
-        ) : (
-          <ul>
-            {watchlist.map((stock) => (
-              <li key={stock} onClick={() => setTicker(stock)}>
-                {stock}
-              </li>
-            ))}
-          </ul>
-        )}
+      <input
+        type="text"
+        placeholder="Search watchlist..."
+        value={watchlistSearch}
+        onChange={(e) => setWatchlistSearch(e.target.value.toUpperCase())}
+        style={{marginBottom: '8px', padding: '4px', width: '100%'}}
+      />
+      {filteredWatchlist.length === 0 ? (
+        <p>Your watchlist is empty</p>
+      ) : (
+        <ul>
+          {filteredWatchlist.map((stock) => (
+            <li key={stock} onClick={() => setTicker(stock)} style={{cursor: 'pointer'}}>
+              {stock}
+            </li>
+          ))}
+        </ul>
+      )}
       </div>
     </div>
   );
 }
 
 export default App;
+
