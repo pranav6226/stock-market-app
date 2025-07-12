@@ -1,3 +1,17 @@
+import jwt
+import bcrypt
+from functools import wraps
+from flask import g
+
+# Secret key for encoding and decoding JWT tokens
+JWT_SECRET_KEY = 'your_secret_key_here'  # Change this to a secure random key
+JWT_ALGORITHM = 'HS256'
+
+# In-memory user store to hold registered users
+users_db = {}
+
+# Helper function for token required decorator
+
 from flask import Flask, jsonify, request, make_response
 import traceback
 import datetime
@@ -11,6 +25,37 @@ application = Flask(__name__)
 
 # Initialize CORS
 # Use FRONTEND_URL environment variable for allowed origin, default to '*' if not set
+# Decorator to protect routes requiring valid JWT token
+# Sets g.current_user to the username extracted from the token
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        # JWT token should be passed in the Authorization header as 'Bearer <token>'
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            parts = auth_header.split(' ')
+            if len(parts) == 2 and parts[0] == 'Bearer':
+                token = parts[1]
+        
+        if not token:
+            return jsonify({'message': 'Token is missing!'}), 401
+        
+        try:
+            data = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+            g.current_user = data['username']
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Token has expired!'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'message': 'Invalid token!'}), 401
+        except Exception as e:
+            return jsonify({'message': 'Token verification failed', 'error': str(e)}), 401
+        
+        return f(*args, **kwargs)
+    return decorated
+
+
 frontend_url = os.environ.get('FRONTEND_URL', '*') 
 CORS(application, resources={r"/api/*": {"origins": frontend_url}})
 
@@ -75,6 +120,68 @@ def get_stock_data():
                 "region": "US",
                 "lang": "en-US",
                 "includePrePost": "false",
+@application.route('/api/signup', methods=['POST'])
+def signup():
+    try:
+        data = request.get_json(force=True)
+        username = data.get('username')
+        password = data.get('password')
+
+        if not username or not password:
+            return jsonify({'message': 'Username and password are required!'}), 400
+
+        if username in users_db:
+            return jsonify({'message': 'User already exists!'}), 409
+
+        # Hash the password before saving
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        users_db[username] = hashed_password
+
+        return jsonify({'message': 'User created successfully!'}), 201
+    except Exception as e:
+        print(f"Signup error: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'message': 'Internal server error'}), 500
+
+
+@application.route('/api/login', methods=['POST'])
+def login():
+    try:
+        data = request.get_json(force=True)
+        username = data.get('username')
+        password = data.get('password')
+
+        if not username or not password:
+            return jsonify({'message': 'Username and password are required!'}), 400
+
+        if username not in users_db:
+            return jsonify({'message': 'Invalid username or password!'}), 401
+
+        stored_hash = users_db[username]
+
+        # Check the hashed password
+        if not bcrypt.checkpw(password.encode('utf-8'), stored_hash):
+            return jsonify({'message': 'Invalid username or password!'}), 401
+
+        # Generate JWT token valid for 1 hour
+        token = jwt.encode(
+            {
+                'username': username,
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+            },
+            JWT_SECRET_KEY,
+            algorithm=JWT_ALGORITHM
+        )
+
+        return jsonify({'token': token}), 200
+
+    except Exception as e:
+        print(f"Login error: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'message': 'Internal server error'}), 500
+
+
+
                 "interval": "1d",
                 "range": "1d",
                 "corsDomain": "finance.yahoo.com",
