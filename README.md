@@ -125,6 +125,25 @@ Ensure the following environment variables are set in your deployment platforms:
 
 The backend fetches data from Yahoo Finance. This is for educational and personal use only. Please review Yahoo's terms of service for any production use.
 
+## Portfolio Performance Metrics
+
+The application provides several key metrics to help you assess portfolio and stock performance over time. These metrics are available in the interactive charts and the technical analysis feature.
+
+| Metric                | Description                                                                               |
+|-----------------------|-------------------------------------------------------------------------------------------|
+| Cumulative Return     | Total percentage return over a period, showing overall portfolio growth or decline.        |
+| Annualized Return     | The average yearly return, accounting for the length of the investment period.            |
+| Volatility            | Statistical measure of the dispersion of returns, typically shown as standard deviation.  |
+| Sharpe Ratio          | Risk-adjusted return – shows how much excess return is received for extra volatility.     |
+| Maximum Drawdown      | The largest observed loss from peak to trough, indicating exposure to risk.               |
+| Benchmark Comparison  | Compares your portfolio's performance to major indexes like S&P 500 or Nasdaq.            |
+
+**Where to Find:**  
+- View these metrics alongside charts of price history and technical indicators.
+- Metrics may be shown in hover tooltips on charts, the Analysis/Performance tab, or summary sections.
+
+> **Note:** Calculations are based on available historical price data and may change based on the selected time range or asset.
+
 ## License
 
 MIT 
