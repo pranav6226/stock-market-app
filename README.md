@@ -125,6 +125,29 @@ Ensure the following environment variables are set in your deployment platforms:
 
 The backend fetches data from Yahoo Finance. This is for educational and personal use only. Please review Yahoo's terms of service for any production use.
 
+## Running Tests
+
+### Frontend (React)
+
+To run frontend tests, from your project root:
+
+```bash
+npm test
+```
+
+This command runs the default React test suite.
+
+### Backend (Python/Flask)
+
+If you add Python tests in the backend (e.g., using `pytest` or `unittest`), run:
+
+```bash
+cd backend
+pytest
+```
+
+_(If no tests are present, this command will do nothing. Add your test files as `test_*.py` in the `backend/` directory.)_
+
 ## License
 
 MIT 
