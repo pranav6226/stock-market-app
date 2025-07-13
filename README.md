@@ -11,6 +11,29 @@ A React application with Python Flask backend to search and display stock market
 - Personalized watchlists (currently uses localStorage)
 - Stock comparison feature
 - Market news related to the selected stock
+## Voice Call Improvements
+
+We are excited to announce recent and upcoming improvements to voice call functionality within our application:
+
+### What's Improved
+- **Increased call stability:** Fewer dropped connections, improved error handling.
+- **Enhanced audio quality:** Better processing for clearer conversations.
+- **UI/UX Upgrades:** More intuitive controls for joining, muting, and ending calls.
+- **Cross-platform Support:** Improved compatibility with modern browsers and devices.
+
+### Usage
+
+While primary features focus on stock data, our (future) voice call capability is designed for real-time collaboration and communication during market research sessions.
+
+> **Note:** Voice call features are being rolled out and may not be visible to all users in the current version.
+
+#### Troubleshooting
+
+- Ensure your browser has microphone permissions enabled.
+- For the best experience, use Chrome or Firefox and a headset.
+
+For additional details or support, please refer to our [contribution guidelines](CONTRIBUTING.md) or open an [Issue](https://github.com/[REPO]/issues).
+
 - Uses Yahoo Finance API for real-time data (with mock data fallback)
 
 ## Technologies Used
