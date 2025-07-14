@@ -8,6 +8,59 @@ import os
 from flask_cors import CORS
 
 application = Flask(__name__)
+from flask_sqlalchemy import SQLAlchemy
+
+# Setup SQLAlchemy
+application.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///portfolio.db'
+application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(application)
+
+# Define DB models
+class PortfolioEntry(db.Model):
+    __tablename__ = 'portfolio_entries'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, nullable=False)
+    symbol = db.Column(db.String, nullable=False)
+    shares = db.Column(db.Integer, nullable=False)
+
+    def to_dict(self):
+        return {'id': self.id, 'user_id': self.user_id, 'symbol': self.symbol, 'shares': self.shares}
+
+class Alert(db.Model):
+    __tablename__ = 'alerts'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, nullable=False)
+    symbol = db.Column(db.String, nullable=False)
+    condition = db.Column(db.String, nullable=False)  # Stored as JSON string
+
+    def to_dict(self):
+        return {'id': self.id, 'user_id': self.user_id, 'symbol': self.symbol, 'condition': json.loads(self.condition)}
+
+class PerformanceRecord(db.Model):
+    __tablename__ = 'performance_records'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    total_value = db.Column(db.Float, nullable=False)
+    daily_change_percent = db.Column(db.Float, nullable=False)
+    details = db.Column(db.String, nullable=False)  # JSON string description of day performance
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'date': self.date.isoformat(),
+            'total_value': self.total_value,
+            'daily_change_percent': self.daily_change_percent,
+            'details': json.loads(self.details)
+        }
+
+
+# Create tables if not exist
+with application.app_context():
+    db.create_all()
+
 
 # Initialize CORS
 # Use FRONTEND_URL environment variable for allowed origin, default to '*' if not set
@@ -118,6 +171,144 @@ def get_stock_data():
                         open_price = previous_close
                         
                     if 'high' in quote and quote['high'] and quote['high'][-1] is not None:
+# Data structures for portfolio management, alerts, and analytics (in-memory for now)
+# user_portfolios = {}
+# user_alerts = {}
+# user_performance_data = {}
+
+# Helper function to get user id from request headers (mocked for now)
+def get_user_id():
+    # In real implementation, retrieve user session or token
+    return request.headers.get('X-User-Id', 'default_user')
+
+# Portfolio CRUD endpoints
+@application.route('/api/portfolio', methods=['GET'])
+def get_portfolio():
+    user_id = get_user_id()
+    portfolio_entries = PortfolioEntry.query.filter_by(user_id=user_id).all()
+    portfolio = [entry.to_dict() for entry in portfolio_entries]
+    return jsonify({'portfolio': portfolio})
+
+@application.route('/api/portfolio', methods=['POST'])
+def create_portfolio_entry():
+    user_id = get_user_id()
+    data = request.json
+    # Validate input
+    if not data or 'symbol' not in data or 'shares' not in data:
+        return jsonify({'error': 'Missing symbol or shares'}), 400
+    symbol = data['symbol'].upper()
+    shares = data['shares']
+
+    entry = PortfolioEntry.query.filter_by(user_id=user_id, symbol=symbol).first()
+    if entry:
+        entry.shares += shares
+    else:
+        entry = PortfolioEntry(user_id=user_id, symbol=symbol, shares=shares)
+        db.session.add(entry)
+    db.session.commit()
+
+    portfolio_entries = PortfolioEntry.query.filter_by(user_id=user_id).all()
+    portfolio = [e.to_dict() for e in portfolio_entries]
+    return jsonify({'message': 'Portfolio updated', 'portfolio': portfolio})
+
+@application.route('/api/portfolio', methods=['PUT'])
+def update_portfolio_entry():
+    user_id = get_user_id()
+    data = request.json
+    if not data or 'symbol' not in data or 'shares' not in data:
+        return jsonify({'error': 'Missing symbol or shares'}), 400
+    symbol = data['symbol'].upper()
+    shares = data['shares']
+
+    entry = PortfolioEntry.query.filter_by(user_id=user_id, symbol=symbol).first()
+    if entry:
+        entry.shares = shares
+        db.session.commit()
+        portfolio_entries = PortfolioEntry.query.filter_by(user_id=user_id).all()
+        portfolio = [e.to_dict() for e in portfolio_entries]
+        return jsonify({'message': 'Portfolio entry updated', 'portfolio': portfolio})
+    return jsonify({'error': 'Symbol not found in portfolio'}), 404
+
+@application.route('/api/portfolio', methods=['DELETE'])
+def delete_portfolio_entry():
+    user_id = get_user_id()
+    data = request.json
+    if not data or 'symbol' not in data:
+        return jsonify({'error': 'Missing symbol'}), 400
+    symbol = data['symbol'].upper()
+
+    entry = PortfolioEntry.query.filter_by(user_id=user_id, symbol=symbol).first()
+    if entry:
+        db.session.delete(entry)
+        db.session.commit()
+        portfolio_entries = PortfolioEntry.query.filter_by(user_id=user_id).all()
+        portfolio = [e.to_dict() for e in portfolio_entries]
+        return jsonify({'message': 'Portfolio entry deleted', 'portfolio': portfolio})
+    else:
+        return jsonify({'error': 'Symbol not found in portfolio'}), 404
+
+# Alert subscription endpoints
+@application.route('/api/alerts', methods=['GET'])
+def list_alerts():
+    user_id = get_user_id()
+    alerts = Alert.query.filter_by(user_id=user_id).all()
+    alerts_list = [a.to_dict() for a in alerts]
+    return jsonify({'alerts': alerts_list})
+
+@application.route('/api/alerts', methods=['POST'])
+def subscribe_alert():
+    user_id = get_user_id()
+    data = request.json
+    # Validate input
+    if not data or 'symbol' not in data or 'condition' not in data:
+        return jsonify({'error': 'Missing symbol or condition'}), 400
+    symbol = data['symbol'].upper()
+    condition = data['condition']
+
+    alert = Alert(user_id=user_id, symbol=symbol, condition=json.dumps(condition))
+    db.session.add(alert)
+    db.session.commit()
+
+    alerts = Alert.query.filter_by(user_id=user_id).all()
+    alerts_list = [a.to_dict() for a in alerts]
+    return jsonify({'message': 'Alert subscribed', 'alerts': alerts_list})
+
+@application.route('/api/alerts', methods=['DELETE'])
+def unsubscribe_alert():
+    user_id = get_user_id()
+    data = request.json
+    if not data or 'symbol' not in data or 'condition' not in data:
+        return jsonify({'error': 'Missing symbol or condition'}), 400
+    symbol = data['symbol'].upper()
+    condition = data['condition']
+
+    alerts = Alert.query.filter_by(user_id=user_id).all()
+    new_alerts = []
+    deleted = False
+    for alert in alerts:
+        try:
+            alert_condition = json.loads(alert.condition)
+            if alert.symbol == symbol and alert_condition == condition:
+                db.session.delete(alert)
+                deleted = True
+        except Exception:
+            pass
+
+    if deleted:
+        db.session.commit()
+
+    alerts_after = Alert.query.filter_by(user_id=user_id).all()
+    alerts_list = [a.to_dict() for a in alerts_after]
+    return jsonify({'message': 'Alert unsubscribed' if deleted else 'No matching alert found', 'alerts': alerts_list})
+
+# Performance analytics endpoint
+@application.route('/api/analytics', methods=['GET'])
+def get_performance_analytics():
+    user_id = get_user_id()
+    records = PerformanceRecord.query.filter_by(user_id=user_id).order_by(PerformanceRecord.date.asc()).all()
+    analytics = [record.to_dict() for record in records]
+    return jsonify({'performance': analytics})
+
                         high_price = quote['high'][-1]
                     else:
                         high_price = max(current_price, open_price) * 1.01
