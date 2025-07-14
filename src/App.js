@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import DarkModeToggle from './components/DarkModeToggle';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
@@ -98,14 +99,18 @@ function Dashboard({ API_URLS, onStockDataChange }) {
 
   return (
     <div className="dashboard">
-      <header className="App-header">
-        <h1>Stock Market Dashboard</h1>
-        <p className="api-info">Data source: {API_URLS[apiUrlIndex]}</p>
-        <div className="navigation-links">
-          <Link to="/">Home</Link>
-          <Link to="/compare">Compare Stocks</Link>
-          <Link to="/watchlist">Watchlist</Link>
+      <header className="App-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h1>Stock Market Dashboard</h1>
+          <p className="api-info">Data source: {API_URLS[apiUrlIndex]}</p>
+          <div className="navigation-links">
+            <Link to="/">Home</Link>
+            <Link to="/compare">Compare Stocks</Link>
+            <Link to="/watchlist">Watchlist</Link>
+          </div>
         </div>
+        <DarkModeToggle darkMode={darkMode} onToggle={() => setDarkMode(m => !m)} />
+      </header>
       </header>
 
       <div className="dashboard-layout">
@@ -147,6 +152,22 @@ function Dashboard({ API_URLS, onStockDataChange }) {
 }
 
 function App() {
+  // Dark mode state and effect
+  const [darkMode, setDarkMode] = useState(() => {
+    // Try to load from localStorage, fallback to system pref, then false
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = localStorage.getItem('darkMode');
+      if (stored !== null) return stored === 'true';
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+      return true;
+    return false;
+  });
+  useEffect(() => {
+    document.body.classList.toggle('dark-mode', darkMode);
+    localStorage.setItem('darkMode', darkMode);
+  }, [darkMode]);
+
   const [stockData, setStockData] = useState({});
   
   // Define the API URL based on environment variable or fallback to localhost
@@ -170,7 +191,7 @@ function App() {
 
   return (
     <Router>
-      <div className="App">
+      <div className={`App${darkMode ? ' dark-mode' : ''}`}>
         <Routes>
           <Route path="/" element={<LandingPage onEnterApp={handleEnterApp} />} />
           <Route path="/dashboard" element={<Dashboard API_URLS={API_URLS} onStockDataChange={setStockData} />} />
