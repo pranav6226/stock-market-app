@@ -1,4 +1,74 @@
 .App {
+/* === DARK MODE SUPPORT === */
+.dark-mode {
+  background-color: #181a1b !important;
+  color: #e4e6e7 !important;
+}
+
+.dark-mode .App-header {
+  background-color: #23272f;
+  color: #e4e6e7;
+}
+
+.dark-mode .App-footer,
+.dark-mode .landing-footer {
+  color: #bbb;
+  border-top: 1px solid #333;
+}
+
+.dark-mode .dashboard-sidebar,
+.dark-mode .dashboard-main,
+.dark-mode .card,
+.dark-mode .chart-container,
+.dark-mode .price-levels-container,
+.dark-mode .price-summary,
+.dark-mode .today-price-summary,
+.dark-mode .feature-card,
+.dark-mode .tech-card {
+  background-color: #23272f !important;
+  color: #e4e6e7 !important;
+  box-shadow: none;
+}
+
+.dark-mode .navigation-links a {
+  background-color: #353943;
+  color: #e4e6e7;
+}
+
+.dark-mode .navigation-links a:hover {
+  background-color: #444957;
+}
+
+.dark-mode .landing-hero {
+  background-color: #23272f !important;
+  color: #fff !important;
+}
+
+.dark-mode .input-group input,
+.dark-mode input {
+  background-color: #222428;
+  color: #e4e6e7;
+  border: 1px solid #444;
+}
+
+.dark-mode button {
+  background-color: #374151;
+  color: #e4e6e7;
+}
+
+.dark-mode button:hover,
+.dark-mode button.active {
+  background-color: #232e40;
+}
+
+.dark-mode .stock-list .price-up {
+  color: #81d287;
+}
+.dark-mode .stock-list .price-down {
+  color: #ff8175;
+}
+
+
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   max-width: 1400px;
   margin: 0 auto;

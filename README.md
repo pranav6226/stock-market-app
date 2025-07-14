@@ -12,6 +12,8 @@ A React application with Python Flask backend to search and display stock market
 - Stock comparison feature
 - Market news related to the selected stock
 ## Voice Call Improvements
+- 🌗 Simple dark mode toggle (persists preference, respects system setting)
+
 
 We are excited to announce recent and upcoming improvements to voice call functionality within our application:
 
