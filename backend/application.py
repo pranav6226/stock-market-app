@@ -6,12 +6,56 @@ import json
 import random
 import os
 from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
 
 application = Flask(__name__)
 
 # Initialize CORS
 # Use FRONTEND_URL environment variable for allowed origin, default to '*' if not set
 frontend_url = os.environ.get('FRONTEND_URL', '*') 
+application.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///./dashboard.db')
+application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(application)
+
+# Database Models
+class Portfolio(db.Model):
+    __tablename__ = 'portfolios'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, nullable=False)
+    name = db.Column(db.String, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+class StockHolding(db.Model):
+    __tablename__ = 'stock_holdings'
+    id = db.Column(db.Integer, primary_key=True)
+    portfolio_id = db.Column(db.Integer, db.ForeignKey('portfolios.id'), nullable=False)
+    symbol = db.Column(db.String, nullable=False)
+    shares = db.Column(db.Float, nullable=False)
+    average_price = db.Column(db.Float, nullable=False)
+
+class StockAlert(db.Model):
+    __tablename__ = 'stock_alerts'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, nullable=False)
+    symbol = db.Column(db.String, nullable=False)
+    target_price = db.Column(db.Float, nullable=False)
+    alert_type = db.Column(db.String, nullable=False)  # e.g., 'above', 'below'
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+class PerformanceAnalytics(db.Model):
+    __tablename__ = 'performance_analytics'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, nullable=False)
+    portfolio_id = db.Column(db.Integer, db.ForeignKey('portfolios.id'), nullable=False)
+    analytics_data = db.Column(db.Text, nullable=False)  # JSON string
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+# Create all tables
+with application.app_context():
+    db.create_all()
+
 CORS(application, resources={r"/api/*": {"origins": frontend_url}})
 
 # Current realistic prices for common stocks (as of April 2024)
@@ -65,6 +109,193 @@ def get_stock_data():
         symbol = request.args.get('symbol', 'AAPL').upper()  # Default to AAPL if not provided
         print(f"Looking up symbol: {symbol}")
         
+# CRUD endpoints for User Portfolios
+
+@application.route('/api/portfolios', methods=['POST'])
+def create_portfolio():
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        name = data.get('name')
+        if not user_id or not name:
+            return jsonify({'error': 'user_id and name are required'}), 400
+
+        new_portfolio = Portfolio(user_id=user_id, name=name)
+        db.session.add(new_portfolio)
+        db.session.commit()
+        return jsonify({'message': 'Portfolio created', 'portfolio': {'id': new_portfolio.id, 'user_id': user_id, 'name': name}}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@application.route('/api/portfolios/<int:portfolio_id>', methods=['GET'])
+def get_portfolio(portfolio_id):
+    try:
+        portfolio = Portfolio.query.get(portfolio_id)
+        if not portfolio:
+            return jsonify({'error': 'Portfolio not found'}), 404
+
+        holdings = StockHolding.query.filter_by(portfolio_id=portfolio_id).all()
+        holdings_data = [{'id': h.id, 'symbol': h.symbol, 'shares': h.shares, 'average_price': h.average_price} for h in holdings]
+        return jsonify({'id': portfolio.id, 'user_id': portfolio.user_id, 'name': portfolio.name, 'holdings': holdings_data})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@application.route('/api/portfolios/<int:portfolio_id>', methods=['PUT'])
+def update_portfolio(portfolio_id):
+    try:
+        data = request.get_json()
+        portfolio = Portfolio.query.get(portfolio_id)
+        if not portfolio:
+            return jsonify({'error': 'Portfolio not found'}), 404
+
+        if 'name' in data:
+            portfolio.name = data['name']
+        db.session.commit()
+        return jsonify({'message': 'Portfolio updated', 'portfolio': {'id': portfolio.id, 'name': portfolio.name}})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@application.route('/api/portfolios/<int:portfolio_id>', methods=['DELETE'])
+def delete_portfolio(portfolio_id):
+    try:
+        portfolio = Portfolio.query.get(portfolio_id)
+        if not portfolio:
+            return jsonify({'error': 'Portfolio not found'}), 404
+
+        # Delete all holdings first
+        StockHolding.query.filter_by(portfolio_id=portfolio_id).delete()
+        db.session.delete(portfolio)
+        db.session.commit()
+        return jsonify({'message': 'Portfolio deleted'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# CRUD endpoints for Stock Holdings
+
+@application.route('/api/portfolios/<int:portfolio_id>/holdings', methods=['POST'])
+def add_stock_holding(portfolio_id):
+    try:
+        data = request.get_json()
+        symbol = data.get('symbol')
+        shares = data.get('shares')
+        average_price = data.get('average_price')
+        if not symbol or shares is None or average_price is None:
+            return jsonify({'error': 'symbol, shares, and average_price are required'}), 400
+
+        portfolio = Portfolio.query.get(portfolio_id)
+        if not portfolio:
+            return jsonify({'error': 'Portfolio not found'}), 404
+
+        new_holding = StockHolding(portfolio_id=portfolio_id, symbol=symbol, shares=shares, average_price=average_price)
+        db.session.add(new_holding)
+        db.session.commit()
+        return jsonify({'message': 'Stock holding added', 'holding': {'id': new_holding.id, 'symbol': symbol, 'shares': shares, 'average_price': average_price}}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@application.route('/api/portfolios/<int:portfolio_id>/holdings/<int:holding_id>', methods=['PUT'])
+def update_stock_holding(portfolio_id, holding_id):
+    try:
+        data = request.get_json()
+        holding = StockHolding.query.get(holding_id)
+        if not holding or holding.portfolio_id != portfolio_id:
+            return jsonify({'error': 'Stock holding not found'}), 404
+
+        if 'shares' in data:
+            holding.shares = data['shares']
+        if 'average_price' in data:
+            holding.average_price = data['average_price']
+        db.session.commit()
+        return jsonify({'message': 'Stock holding updated', 'holding': {'id': holding.id, 'shares': holding.shares, 'average_price': holding.average_price}})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@application.route('/api/portfolios/<int:portfolio_id>/holdings/<int:holding_id>', methods=['DELETE'])
+def delete_stock_holding(portfolio_id, holding_id):
+    try:
+        holding = StockHolding.query.get(holding_id)
+        if not holding or holding.portfolio_id != portfolio_id:
+            return jsonify({'error': 'Stock holding not found'}), 404
+
+        db.session.delete(holding)
+        db.session.commit()
+        return jsonify({'message': 'Stock holding deleted'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# Endpoints for Stock Alerts
+
+@application.route('/api/alerts', methods=['GET'])
+def get_stock_alerts():
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'user_id is required'}), 400
+    alerts = StockAlert.query.filter_by(user_id=user_id, is_active=True).all()
+    alerts_data = [{'id': a.id, 'symbol': a.symbol, 'target_price': a.target_price, 'alert_type': a.alert_type} for a in alerts]
+    return jsonify(alerts_data)
+
+@application.route('/api/alerts', methods=['POST'])
+def create_stock_alert():
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        symbol = data.get('symbol')
+        target_price = data.get('target_price')
+        alert_type = data.get('alert_type')
+        
+        if not user_id or not symbol or target_price is None or not alert_type:
+            return jsonify({'error': 'user_id, symbol, target_price, and alert_type are required'}), 400
+
+        new_alert = StockAlert(user_id=user_id, symbol=symbol, target_price=target_price, alert_type=alert_type)
+        db.session.add(new_alert)
+        db.session.commit()
+        return jsonify({'message': 'Stock alert created', 'alert': {'id': new_alert.id, 'symbol': symbol, 'target_price': target_price, 'alert_type': alert_type}}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@application.route('/api/alerts/<int:alert_id>', methods=['DELETE'])
+def delete_stock_alert(alert_id):
+    try:
+        alert = StockAlert.query.get(alert_id)
+        if not alert:
+            return jsonify({'error': 'Alert not found'}), 404
+
+        db.session.delete(alert)
+        db.session.commit()
+        return jsonify({'message': 'Stock alert deleted'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# Endpoints for Performance Analytics
+
+@application.route('/api/analytics/<string:user_id>', methods=['GET'])
+def get_performance_analytics(user_id):
+    try:
+        analytics = PerformanceAnalytics.query.filter_by(user_id=user_id).all()
+        analytics_list = [{'id': a.id, 'portfolio_id': a.portfolio_id, 'analytics_data': json.loads(a.analytics_data), 'created_at': a.created_at.isoformat()} for a in analytics]
+        return jsonify(analytics_list)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@application.route('/api/analytics', methods=['POST'])
+def create_performance_analytics():
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        portfolio_id = data.get('portfolio_id')
+        analytics_data = data.get('analytics_data')
+        if not user_id or not portfolio_id or not analytics_data:
+            return jsonify({'error': 'user_id, portfolio_id, and analytics_data are required'}), 400
+
+        new_analytics = PerformanceAnalytics(user_id=user_id, portfolio_id=portfolio_id, analytics_data=json.dumps(analytics_data))
+        db.session.add(new_analytics)
+        db.session.commit()
+        return jsonify({'message': 'Performance analytics saved', 'id': new_analytics.id}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
         # Direct HTTP request to Yahoo Finance API
         try:
             # Yahoo Finance API URL
