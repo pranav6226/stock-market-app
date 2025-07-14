@@ -128,3 +128,20 @@ The backend fetches data from Yahoo Finance. This is for educational and persona
 ## License
 
 MIT 
+# Dashboard section
+## Portfolio, Alerts, and Analytics Dashboard
+Added a comprehensive dashboard feature with the following details:
+- Backend API endpoints in `backend/application.py` for portfolio CRUD, stock alerts, and performance analytics
+- Frontend React components in `src/components/`:
+  - Dashboard.js (main container)
+  - PortfolioTracker.js
+  - StockAlerts.js
+  - PerformanceAnalytics.js
+- Page created at `src/pages/Dashboard.js` and routing updated in `src/App.js`
+- Basic CSS styling added in `src/components/Dashboard.css`
+- Tests added for new components in `src/__tests__/`
+
+This feature allows users to track portfolios, subscribe to stock alerts, and view performance analytics.
+
+---
+

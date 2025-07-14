@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request, make_response
 import traceback
 import datetime
+from flask_sqlalchemy import SQLAlchemy
+
 import requests
 import json
 import random
@@ -11,6 +13,12 @@ application = Flask(__name__)
 
 # Initialize CORS
 # Use FRONTEND_URL environment variable for allowed origin, default to '*' if not set
+# Initialize SQLAlchemy
+application.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///portfolio.db'
+application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(application)
+
 frontend_url = os.environ.get('FRONTEND_URL', '*') 
 CORS(application, resources={r"/api/*": {"origins": frontend_url}})
 
@@ -62,6 +70,9 @@ def get_stock_data():
     
     try:
         # Get the stock symbol from the query parameters
+from flask_sqlalchemy import SQLAlchemy
+from flask import abort
+
         symbol = request.args.get('symbol', 'AAPL').upper()  # Default to AAPL if not provided
         print(f"Looking up symbol: {symbol}")
         
@@ -77,6 +88,66 @@ def get_stock_data():
                 "includePrePost": "false",
                 "interval": "1d",
                 "range": "1d",
+# Database models for portfolio, alerts, and analytics
+class UserPortfolio(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(64), nullable=False)
+    symbol = db.Column(db.String(16), nullable=False)
+    shares = db.Column(db.Float, nullable=False)
+    purchase_price = db.Column(db.Float, nullable=False)
+    purchase_date = db.Column(db.DateTime, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'symbol': self.symbol,
+            'shares': self.shares,
+            'purchase_price': self.purchase_price,
+            'purchase_date': self.purchase_date.isoformat()
+        }
+
+class StockAlert(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(64), nullable=False)
+    symbol = db.Column(db.String(16), nullable=False)
+    target_price = db.Column(db.Float, nullable=False)
+    alert_type = db.Column(db.String(16), nullable=False)  # e.g., 'above', 'below'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'symbol': self.symbol,
+            'target_price': self.target_price,
+            'alert_type': self.alert_type
+        }
+
+class PortfolioPerformance(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(64), nullable=False)
+    symbol = db.Column(db.String(16), nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
+    portfolio_value = db.Column(db.Float, nullable=False)
+    daily_change = db.Column(db.Float, nullable=True)
+    daily_change_percent = db.Column(db.Float, nullable=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'symbol': self.symbol,
+            'date': self.date.isoformat(),
+            'portfolio_value': self.portfolio_value,
+            'daily_change': self.daily_change,
+            'daily_change_percent': self.daily_change_percent
+        }
+
+
+# Create tables at startup
+with application.app_context():
+    db.create_all()
+
                 "corsDomain": "finance.yahoo.com",
                 ".tsrc": "finance"
             }
@@ -187,6 +258,166 @@ def get_mock_stock_data(symbol):
     else:
         # For unknown symbols, generate a realistic price based on first letter
         first_letter = symbol[0].upper()
+# Portfolio CRUD endpoints
+@application.route('/api/portfolio', methods=['GET', 'POST', 'PUT', 'DELETE'])
+def portfolio():
+    try:
+        if request.method == 'GET':
+            user_id = request.args.get('user_id')
+            if not user_id:
+                return jsonify({'error': 'user_id is required'}), 400
+            portfolios = UserPortfolio.query.filter_by(user_id=user_id).all()
+            return jsonify([p.to_dict() for p in portfolios])
+
+        elif request.method == 'POST':
+            data = request.json
+            user_id = data.get('user_id')
+            symbol = data.get('symbol')
+            shares = data.get('shares')
+            purchase_price = data.get('purchase_price')
+            purchase_date_str = data.get('purchase_date')
+
+            if not all([user_id, symbol, shares, purchase_price, purchase_date_str]):
+                return jsonify({'error': 'Missing required fields'}), 400
+
+            try:
+                purchase_date = datetime.datetime.fromisoformat(purchase_date_str)
+            except Exception:
+                return jsonify({'error': 'Invalid purchase_date format'}), 400
+
+            portfolio = UserPortfolio(user_id=user_id, symbol=symbol.upper(), shares=shares, purchase_price=purchase_price, purchase_date=purchase_date)
+            db.session.add(portfolio)
+            db.session.commit()
+            return jsonify(portfolio.to_dict()), 201
+
+        elif request.method == 'PUT':
+            data = request.json
+            portfolio_id = data.get('id')
+            if not portfolio_id:
+                return jsonify({'error': 'id is required for update'}), 400
+
+            portfolio = UserPortfolio.query.get(portfolio_id)
+            if not portfolio:
+                return jsonify({'error': 'Portfolio item not found'}), 404
+
+            symbol = data.get('symbol')
+            shares = data.get('shares')
+            purchase_price = data.get('purchase_price')
+            purchase_date_str = data.get('purchase_date')
+
+            if symbol:
+                portfolio.symbol = symbol.upper()
+            if shares is not None:
+                portfolio.shares = shares
+            if purchase_price is not None:
+                portfolio.purchase_price = purchase_price
+            if purchase_date_str:
+                try:
+                    portfolio.purchase_date = datetime.datetime.fromisoformat(purchase_date_str)
+                except Exception:
+                    return jsonify({'error': 'Invalid purchase_date format'}), 400
+
+            db.session.commit()
+            return jsonify(portfolio.to_dict())
+
+        elif request.method == 'DELETE':
+            portfolio_id = request.args.get('id')
+            if not portfolio_id:
+                return jsonify({'error': 'id is required for deletion'}), 400
+
+            portfolio = UserPortfolio.query.get(portfolio_id)
+            if not portfolio:
+                return jsonify({'error': 'Portfolio item not found'}), 404
+
+            db.session.delete(portfolio)
+            db.session.commit()
+            return '', 204
+
+    except Exception as e:
+        print(f"Error processing portfolio request: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+# Stock alerts endpoints
+@application.route('/api/alerts', methods=['GET', 'POST', 'DELETE'])
+def alerts():
+    try:
+        if request.method == 'GET':
+            user_id = request.args.get('user_id')
+            if not user_id:
+                return jsonify({'error': 'user_id is required'}), 400
+            alerts = StockAlert.query.filter_by(user_id=user_id).all()
+            return jsonify([a.to_dict() for a in alerts])
+
+        elif request.method == 'POST':
+            data = request.json
+            user_id = data.get('user_id')
+            symbol = data.get('symbol')
+            target_price = data.get('target_price')
+            alert_type = data.get('alert_type')
+
+            if not all([user_id, symbol, target_price, alert_type]):
+                return jsonify({'error': 'Missing required fields'}), 400
+
+            alert = StockAlert(user_id=user_id, symbol=symbol.upper(), target_price=target_price, alert_type=alert_type)
+            db.session.add(alert)
+            db.session.commit()
+            return jsonify(alert.to_dict()), 201
+
+        elif request.method == 'DELETE':
+            alert_id = request.args.get('id')
+            if not alert_id:
+                return jsonify({'error': 'id is required for deletion'}), 400
+
+            alert = StockAlert.query.get(alert_id)
+            if not alert:
+                return jsonify({'error': 'Alert not found'}), 404
+
+            db.session.delete(alert)
+            db.session.commit()
+            return '', 204
+
+    except Exception as e:
+        print(f"Error processing alerts request: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+# Performance analytics endpoints
+@application.route('/api/analytics', methods=['GET', 'POST'])
+def analytics():
+    try:
+        if request.method == 'GET':
+            user_id = request.args.get('user_id')
+            if not user_id:
+                return jsonify({'error': 'user_id is required'}), 400
+            performances = PortfolioPerformance.query.filter_by(user_id=user_id).all()
+            return jsonify([p.to_dict() for p in performances])
+        elif request.method == 'POST':
+            data = request.json
+            user_id = data.get('user_id')
+            symbol = data.get('symbol')
+            date_str = data.get('date')
+            portfolio_value = data.get('portfolio_value')
+            daily_change = data.get('daily_change')
+            daily_change_percent = data.get('daily_change_percent')
+
+            if not all([user_id, symbol, date_str, portfolio_value is not None]):
+                return jsonify({'error': 'Missing required fields'}), 400
+
+            try:
+                date = datetime.datetime.fromisoformat(date_str)
+            except Exception:
+                return jsonify({'error': 'Invalid date format'}), 400
+
+            performance = PortfolioPerformance(user_id=user_id, symbol=symbol.upper(), date=date, portfolio_value=portfolio_value, daily_change=daily_change, daily_change_percent=daily_change_percent)
+            db.session.add(performance)
+            db.session.commit()
+            return jsonify(performance.to_dict()), 201
+
+    except Exception as e:
+        print(f"Error processing analytics request: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
         if first_letter in 'ABCDE':
             price = random.uniform(50, 200)  # Common range for many stocks
         elif first_letter in 'FGHIJ':

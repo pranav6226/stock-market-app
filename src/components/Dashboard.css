@@ -1,0 +1,47 @@
+/* Basic dashboard styles */
+.dashboard {
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.dashboard h1 {
+  margin-bottom: 20px;
+}
+
+.portfolio-tracker, .stock-alerts, .performance-analytics {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 20px;
+  background-color: #f9f9f9;
+}
+
+.portfolio-tracker table, .performance-analytics table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.portfolio-tracker th, .portfolio-tracker td, .performance-analytics th, .performance-analytics td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.portfolio-tracker th, .performance-analytics th {
+  background-color: #f2f2f2;
+}
+
+.stock-alerts ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.stock-alerts li {
+  padding: 6px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.loading, .error {
+  color: #666;
+  font-style: italic;
+}

@@ -27,6 +27,8 @@ function Dashboard({ API_URLS, onStockDataChange }) {
     const symbol = params.get('symbol');
     if (symbol) {
       setSearchQuery(symbol);
+import Dashboard from './pages/Dashboard';
+
       setDataLoaded(false); // Reset data loaded flag when symbol changes
     }
   }, []);
@@ -173,7 +175,7 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/" element={<LandingPage onEnterApp={handleEnterApp} />} />
-          <Route path="/dashboard" element={<Dashboard API_URLS={API_URLS} onStockDataChange={setStockData} />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route 
             path="/compare" 
             element={<StockComparison primaryStock={stockData} API_URLS={API_URLS} />} 
