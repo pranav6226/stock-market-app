@@ -101,6 +101,288 @@ def get_stock_data():
                     # Get meta data
                     meta = result['meta']
                     timestamp = result['timestamp'][-1]  # Latest timestamp
+
+# ===================== New Models for User Dashboard =====================
+from flask_sqlalchemy import SQLAlchemy
+
+# Initialize SQLAlchemy
+application.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///backend/data.db'
+application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(application)
+
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    portfolios = db.relationship('Portfolio', backref='user', lazy=True)
+    alerts = db.relationship('StockAlert', backref='user', lazy=True)
+
+class Portfolio(db.Model):
+    __tablename__ = 'portfolios'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    holdings = db.relationship('Holding', backref='portfolio', lazy=True)
+
+class Holding(db.Model):
+    __tablename__ = 'holdings'
+    id = db.Column(db.Integer, primary_key=True)
+    portfolio_id = db.Column(db.Integer, db.ForeignKey('portfolios.id'), nullable=False)
+    symbol = db.Column(db.String(20), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    average_price = db.Column(db.Float, nullable=False)
+
+class StockAlert(db.Model):
+    __tablename__ = 'stock_alerts'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    symbol = db.Column(db.String(20), nullable=False)
+    target_price = db.Column(db.Float, nullable=False)
+    direction = db.Column(db.String(10), nullable=False)  # "above" or "below"
+
+class PerformanceAnalytic(db.Model):
+    __tablename__ = 'performance_analytics'
+    id = db.Column(db.Integer, primary_key=True)
+    portfolio_id = db.Column(db.Integer, db.ForeignKey('portfolios.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    total_value = db.Column(db.Float, nullable=False)
+    gain_loss = db.Column(db.Float, nullable=False)
+
+
+# ===================== API Endpoints for Dashboard =====================
+from sqlalchemy.exc import SQLAlchemyError
+
+# Utility function to get user by id
+# For demo, assume user_id = 1
+
+
+def get_demo_user():
+    user = User.query.get(1)
+    if not user:
+        user = User(id=1, username="demo", email="demo@example.com")
+        db.session.add(user)
+        db.session.commit()
+    return user
+
+# Portfolio CRUD
+@application.route('/api/portfolio', methods=['GET'])
+def get_portfolios():
+    user = get_demo_user()
+    portfolios = Portfolio.query.filter_by(user_id=user.id).all()
+    result = []
+    for p in portfolios:
+        holdings = []
+        for h in p.holdings:
+            holdings.append({
+                "id": h.id,
+                "symbol": h.symbol,
+                "quantity": h.quantity,
+                "average_price": h.average_price
+            })
+        result.append({
+            "id": p.id,
+            "name": p.name,
+            "holdings": holdings
+        })
+    return jsonify(result)
+
+@application.route('/api/portfolio', methods=['POST'])
+def create_portfolio():
+    user = get_demo_user()
+    data = request.json
+    name = data.get('name')
+    if not name:
+        return jsonify({"error": "Portfolio name is required"}), 400
+    portfolio = Portfolio(name=name, user_id=user.id)
+    db.session.add(portfolio)
+    db.session.commit()
+    return jsonify({"id": portfolio.id, "name": portfolio.name}), 201
+
+@application.route('/api/portfolio/<int:portfolio_id>', methods=['PUT'])
+def update_portfolio(portfolio_id):
+    user = get_demo_user()
+    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=user.id).first()
+    if not portfolio:
+        return jsonify({"error": "Portfolio not found"}), 404
+    data = request.json
+    name = data.get('name')
+    if name:
+        portfolio.name = name
+    db.session.commit()
+    return jsonify({"id": portfolio.id, "name": portfolio.name})
+
+@application.route('/api/portfolio/<int:portfolio_id>', methods=['DELETE'])
+def delete_portfolio(portfolio_id):
+    user = get_demo_user()
+    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=user.id).first()
+    if not portfolio:
+        return jsonify({"error": "Portfolio not found"}), 404
+    db.session.delete(portfolio)
+    db.session.commit()
+    return jsonify({"message": "Portfolio deleted"})
+
+# Holdings CRUD
+@application.route('/api/portfolio/<int:portfolio_id>/holding', methods=['POST'])
+def add_holding(portfolio_id):
+    user = get_demo_user()
+    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=user.id).first()
+    if not portfolio:
+        return jsonify({"error": "Portfolio not found"}), 404
+    data = request.json
+    symbol = data.get('symbol')
+    quantity = data.get('quantity')
+    average_price = data.get('average_price')
+    if not symbol or not quantity or not average_price:
+        return jsonify({"error": "symbol, quantity and average_price are required"}), 400
+    holding = Holding(portfolio_id=portfolio.id, symbol=symbol.upper(), quantity=quantity, average_price=average_price)
+    db.session.add(holding)
+    db.session.commit()
+    return jsonify({"id": holding.id, "symbol": holding.symbol, "quantity": holding.quantity, "average_price": holding.average_price}), 201
+
+@application.route('/api/holding/<int:holding_id>', methods=['PUT'])
+def update_holding(holding_id):
+    holding = Holding.query.get(holding_id)
+    if not holding:
+        return jsonify({"error": "Holding not found"}), 404
+    data = request.json
+    quantity = data.get('quantity')
+    average_price = data.get('average_price')
+    symbol = data.get('symbol')
+    if quantity is not None:
+        holding.quantity = quantity
+    if average_price is not None:
+        holding.average_price = average_price
+    if symbol is not None:
+        holding.symbol = symbol.upper()
+    db.session.commit()
+    return jsonify({"id": holding.id, "symbol": holding.symbol, "quantity": holding.quantity, "average_price": holding.average_price})
+
+@application.route('/api/holding/<int:holding_id>', methods=['DELETE'])
+def delete_holding(holding_id):
+    holding = Holding.query.get(holding_id)
+    if not holding:
+        return jsonify({"error": "Holding not found"}), 404
+    db.session.delete(holding)
+    db.session.commit()
+    return jsonify({"message": "Holding deleted"})
+
+# Stock Alerts
+@application.route('/api/alerts', methods=['GET'])
+def get_alerts():
+    user = get_demo_user()
+    alerts = StockAlert.query.filter_by(user_id=user.id).all()
+    result = []
+    for alert in alerts:
+        result.append({
+            "id": alert.id,
+            "symbol": alert.symbol,
+            "target_price": alert.target_price,
+            "direction": alert.direction
+        })
+    return jsonify(result)
+
+@application.route('/api/alerts', methods=['POST'])
+def create_alert():
+    user = get_demo_user()
+    data = request.json
+    symbol = data.get('symbol')
+    target_price = data.get('target_price')
+    direction = data.get('direction')
+    if not symbol or target_price is None or direction not in ['above', 'below']:
+        return jsonify({"error": "symbol, target_price, and direction (above/below) are required"}), 400
+    alert = StockAlert(user_id=user.id, symbol=symbol.upper(), target_price=target_price, direction=direction)
+    db.session.add(alert)
+    db.session.commit()
+    return jsonify({"id": alert.id, "symbol": alert.symbol, "target_price": alert.target_price, "direction": alert.direction}), 201
+
+@application.route('/api/alerts/<int:alert_id>', methods=['DELETE'])
+def delete_alert(alert_id):
+    alert = StockAlert.query.get(alert_id)
+    if not alert:
+        return jsonify({"error": "Alert not found"}), 404
+    db.session.delete(alert)
+    db.session.commit()
+    return jsonify({"message": "Alert deleted"})
+
+# Performance Analytics
+@application.route('/api/analytics/<int:portfolio_id>', methods=['GET'])
+def get_performance_analytics(portfolio_id):
+    analytics = PerformanceAnalytic.query.filter_by(portfolio_id=portfolio_id).order_by(PerformanceAnalytic.date).all()
+    result = []
+    for entry in analytics:
+        result.append({
+            "date": entry.date.strftime('%Y-%m-%d'),
+            "total_value": entry.total_value,
+            "gain_loss": entry.gain_loss
+        })
+    return jsonify(result)
+
+# Function to calculate and store performance analytics - this can be called periodically or through specific triggers
+from sqlalchemy.orm import joinedload
+@application.route('/api/analytics/calculate/<int:portfolio_id>', methods=['POST'])
+def calculate_performance_analytics(portfolio_id):
+    user = get_demo_user()
+    portfolio = Portfolio.query.options(joinedload(Portfolio.holdings)).filter_by(id=portfolio_id, user_id=user.id).first()
+    if not portfolio:
+        return jsonify({"error": "Portfolio not found"}), 404
+
+    # Calculate total current value of holdings
+    total_value = 0.0
+    errors = []
+    for holding in portfolio.holdings:
+        # Get current price from mock data or real API
+        try:
+            price_resp = get_stock_data_api(holding.symbol)
+            if price_resp.status_code == 200:
+                price_data = price_resp.json
+                price = price_data.get('05. price', 0.0)
+            else:
+                price = 0.0
+        except Exception as e:
+            errors.append(str(e))
+            price = 0.0
+
+        total_value += price * holding.quantity
+
+    # Calculate gain/loss relative to total cost basis
+    total_cost = sum([h.quantity * h.average_price for h in portfolio.holdings])
+    gain_loss = total_value - total_cost
+
+    today = datetime.date.today()
+
+    # Store or update performance analytics record
+    analytic = PerformanceAnalytic.query.filter_by(portfolio_id=portfolio_id, date=today).first()
+    if analytic:
+        analytic.total_value = total_value
+        analytic.gain_loss = gain_loss
+    else:
+        analytic = PerformanceAnalytic(portfolio_id=portfolio_id, date=today, total_value=total_value, gain_loss=gain_loss)
+        db.session.add(analytic)
+
+    try:
+        db.session.commit()
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify({"message": "Performance analytics calculated", "total_value": total_value, "gain_loss": gain_loss})
+
+
+def get_stock_data_api(symbol):
+    # This function calls the existing get_stock_data logic via internal API call simulation
+    with application.test_client() as c:
+        resp = c.get(f'/api/stock?symbol={symbol}')
+        return resp
+
+
+# Ensure tables are created
+@app.before_first_request
+def create_tables():
+    db.create_all()
+
+
                     
                     # Get price data
                     current_price = meta.get('regularMarketPrice', 0)
