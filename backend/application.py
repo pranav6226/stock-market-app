@@ -37,6 +37,32 @@ current_prices = {
     'ADBE': 476.73,   # Adobe
     'CSCO': 48.04,    # Cisco
     'NFLX': 636.69,   # Netflix
+import logging
+logging.basicConfig(level=logging.INFO)
+
+@application.route('/api/time', methods=['GET'])
+def get_server_time():
+    """
+    Returns the current server time in ISO 8601 format as JSON.
+    Endpoint: /api/time
+    Method: GET
+    Response Format: {"server_time": "YYYY-MM-DDTHH:MM:SS.ssssssZ"}
+    """
+    try:
+        current_time = datetime.datetime.utcnow().isoformat() + 'Z'  # UTC time with 'Z' suffix
+        logging.info(f"/api/time requested at {current_time}")
+        response = jsonify({"server_time": current_time})
+        response.status_code = 200
+        logging.info(f"/api/time response status: {response.status_code}")
+        return response
+    except Exception as e:
+        error_msg = str(e)
+        logging.error(f"Error in /api/time: {error_msg}")
+        response = jsonify({"error": "Internal Server Error"})
+        response.status_code = 500
+        return response
+
+
     'PFE': 26.66,     # Pfizer
     'INTC': 31.21,    # Intel
     'KO': 60.37,      # Coca-Cola
