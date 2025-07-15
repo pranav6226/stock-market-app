@@ -119,6 +119,7 @@ function Dashboard({ API_URLS, onStockDataChange }) {
             <>
               <StockList stockData={stockData} />
               <TechnicalAnalysis stockData={stockData} />
+              <ServerTime />
               <button onClick={handleCompareStocks} className="compare-button">
                 Compare with Other Stocks
               </button>
@@ -134,6 +135,46 @@ function Dashboard({ API_URLS, onStockDataChange }) {
             </>
           )}
         </div>
+
+function ServerTime() {
+  const [serverTime, setServerTime] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchServerTime = async () => {
+      try {
+        const response = await axios.get('/api/time');
+        if (response.data && response.data.server_time) {
+          setServerTime(response.data.server_time);
+          setError(null);
+        } else {
+          setError('Failed to retrieve server time');
+          setServerTime(null);
+        }
+      } catch (err) {
+        setError('Error fetching server time');
+        setServerTime(null);
+      }
+    };
+
+    fetchServerTime();
+  }, []);
+
+  return (
+    <div className="server-time-container">
+      <h2>Current Server Time</h2>
+      {error && <p className="error">{error}</p>}
+      {serverTime ? (
+        <p className="server-time">{new Date(serverTime).toLocaleString()}</p>
+      ) : !error ? (
+        <p>Loading server time...</p>
+      ) : null}
+    </div>
+  );
+}
+
+// Add the ServerTime component usage to Dashboard UI
+
       </div>
       
       <footer className="App-footer">

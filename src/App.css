@@ -48,6 +48,33 @@
 }
 
 .dashboard-layout {
+
+.server-time-container {
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.server-time-container h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.2em;
+  color: #333;
+}
+
+.server-time {
+  font-weight: bold;
+  color: #007bff;
+  font-size: 1.1em;
+}
+
+.error {
+  color: #ff4d4f;
+  font-weight: 600;
+}
+
   display: grid;
   grid-template-columns: minmax(300px, 30%) 1fr;
   gap: 30px;
